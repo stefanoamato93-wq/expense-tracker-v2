@@ -69,7 +69,9 @@ grouped"); the answer is saved in `meta/settings.ruleoverj` and always wins.
 - `index.html` — the app (copied from v1; the Apps Script sync engine is replaced).
 - `store.js` — every Firebase call (auth gate, settings, month listener, writes). ES module,
   Firebase JS SDK 13.1.0 from gstatic, no build step.
-- `firebase-config.js` — web config (not a secret; security is sign-in + rules).
+- `firebase-config.js` — web config (not a secret; security is sign-in + rules). `authDomain` is
+  `stefanoamato93-wq.github.io` since 25 Oct 2026: the sign-in helper is self-hosted on the root
+  site (repo `stefanoamato93-wq.github.io`), so phone sign-in no longer fails with "missing initial state".
 - `favicon.svg`, `icon-192/512/180.png`, `manifest.webmanifest` — blue € icon with a "2".
 - `_verify_tracker.py` (not committed) — headless Edge check with a fake store seeded from
   the real sheet: rules parity, expense, transfer, edit, month move, delete, new-label dialog.
