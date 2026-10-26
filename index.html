@@ -166,6 +166,11 @@ body {
 .recent-entry .re-status.saving { color: var(--secondary); }
 .recent-entry .re-status.error { color: var(--danger); }
 .history-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.history-search {
+  display: block; width: 100%; box-sizing: border-box; margin: 4px 0 10px; padding: 10px 12px;
+  border: 1px solid var(--secondary); border-radius: 10px; background: var(--bg); color: inherit;
+  font-size: 16px; /* 16px stops iPhone zooming in on focus */
+}
 .sync-status {
   background: none; border: none; padding: 0 0 4px; font: inherit;
   font-size: 11px; color: var(--secondary); cursor: pointer; text-align: right;
@@ -423,6 +428,8 @@ body {
       <div class="field-label">Recent Entries</div>
       <button id="syncStatus" class="sync-status" type="button" aria-live="polite"></button>
     </div>
+    <input type="search" id="historySearch" class="history-search" placeholder="Search: words or amounts…"
+           aria-label="Search entries" autocapitalize="none" autocomplete="off">
     <div id="recentList"><div class="spinner"></div></div>
   </div>
 </div>
@@ -1346,9 +1353,32 @@ function fmtValue(v) {
   return r >= 0 ? '+' + s : s;
 }
 
+// History search: every typed word must appear somewhere in the entry
+// (account, label, details, second account, date or amount). "12,5" = "12.5".
+function searchTerms() {
+  const el = document.getElementById('historySearch');
+  return (el ? el.value : '').toLowerCase().replace(/,/g, '.').split(/\s+/).filter(Boolean);
+}
+function rowMatches(row, terms) {
+  const n = toNum(row.value);
+  const hay = [row.accountMinus, row.accountPlus, row.label, row.details, row.timestamp,
+               row.assetclassdetails, String(row.value), fmtValue(n), Math.abs(n).toFixed(2)]
+    .map(x => String(x == null ? '' : x)).join(' ').toLowerCase().replace(/,/g, '.');
+  return terms.every(w => hay.includes(w));
+}
+
 function renderRecent(rows) {
   updateSyncStatus();
   const older = `<button class="btn-more" type="button" data-older="1">Older months</button>`;
+  const terms = searchTerms();
+  if (terms.length && rows && rows.length) {
+    rows = rows.filter(r => rowMatches(r, terms));
+    if (rows.length === 0) {
+      renderedRows = [];
+      setListHtml(`<p style="color:var(--secondary);font-size:14px;">No matches in the last ${histMonths} months.</p>` + older);
+      return;
+    }
+  }
   if (!rows || rows.length === 0) {
     renderedRows = [];
     setListHtml(!lastSnapAt && !watchErr
@@ -1416,6 +1446,11 @@ document.getElementById('recentList').addEventListener('click', (e) => {
     return;
   }
   populateForm(primaryOf(row));
+});
+
+document.getElementById('historySearch').addEventListener('input', () => {
+  historyLimit = HISTORY_PAGE;
+  renderRecent(getCachedRows());
 });
 
 document.getElementById('syncStatus').addEventListener('click', () => {
