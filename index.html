@@ -2,6 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- start downloading Firebase at once, in parallel with the page -->
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js" crossorigin>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1795,7 +1799,8 @@ window.addEventListener('offline', () => { updateSyncStatus(); refreshHistoryVie
 <!-- v2 data layer: every Firebase call lives in store.js (skipped in fake/test mode) -->
 <script type="module">
 if (!window.ET2_FAKE) {
-  document.getElementById('gate').hidden = false;   // covers the form until sign-in is confirmed
+  // Gate only on a device that never signed in; a remembered user goes straight in.
+  if (!localStorage.getItem('et2.user')) document.getElementById('gate').hidden = false;
   import('./store.js').then(m => m.initGate()).catch(err => {
     const g = document.getElementById('gate');
     g.hidden = false;

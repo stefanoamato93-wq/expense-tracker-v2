@@ -154,30 +154,53 @@ export function initGate() {
     finally { btn.disabled = false; }
   });
   $("acctOut").addEventListener("click", async () => { await signOut(); location.reload(); });
+  // Fast open: once signed in, the uid is remembered on this device, so the app starts at
+  // once without waiting for Firebase to confirm the user or for a server access check.
+  // Firestore itself waits for auth before it talks to the server, so reads stay private.
+  let started = false;
+  const go = u => {
+    if (started) return; started = true;
+    gate.hidden = true;
+    $("acctEmail").textContent = u.email || "";
+    window.ET2.start(api);
+  };
+  const hint = readHint(HINT_KEY);
+  if (hint) { user = { uid: hint.uid, email: hint.email }; go(hint); }
+
   let first = true;
   onUser(async u => {
     if (!u) {
-      if (!first) { location.reload(); return; }
+      localStorage.removeItem(HINT_KEY);
+      if (!first || started) { location.reload(); return; }
       first = false;
       gate.hidden = false; btn.hidden = false;
       msg.textContent = "Sign in with your Google account to save entries.";
       return;
     }
     first = false;
-    const a = await checkAccess();
+    if (started && hint && hint.uid !== u.uid) { writeHint(HINT_KEY, u); location.reload(); return; }
+    writeHint(HINT_KEY, u);
+    go(u);
+    const a = await checkAccess();   // background check; blocks only if access is really gone
     if (a !== "ok") {
+      localStorage.removeItem(HINT_KEY);
       gate.hidden = false; btn.hidden = true;
       msg.textContent = a === "locked"
         ? "This Google account has no access to the database (rules not set for this uid: " + u.uid + ")."
         : "Database error: " + a;
       $("acctOutGate").hidden = false;
-      return;
     }
-    gate.hidden = true;
-    $("acctEmail").textContent = u.email || "";
-    window.ET2.start(api);
   });
   $("acctOutGate").addEventListener("click", async () => { await signOut(); location.reload(); });
+}
+
+const HINT_KEY = "et2.user";
+function readHint(k) {
+  try { const h = JSON.parse(localStorage.getItem(k) || "null"); return h && h.uid ? h : null; }
+  catch (e) { return null; }
+}
+function writeHint(k, u) {
+  try { localStorage.setItem(k, JSON.stringify({ uid: u.uid, email: u.email || "" })); } catch (e) {}
 }
 
 function friendly(e) {
