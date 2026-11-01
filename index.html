@@ -545,6 +545,28 @@ const ICONS = { GROCERIES: '\u{1F6D2}', RESTAURANTS: '\u{1F37D}\uFE0F', TRANSPOR
   HEALTHCARE: '\u{1F48A}', WORK: '\u{1F4BC}', HOLIDAYS: '\u2708\uFE0F', CLOTHES: '\u{1F455}', PRESENTS: '\u{1F381}',
   OBJECTS: '\u{1F4E6}', OFFERS: '\u{1F64F}', SALARY: '\u{1F4B6}', TAXES: '\u{1F9FE}', EXTRA: '\u2795', APPRECIATION: '\u{1F4C8}' };
 let CAT = { acct: [], label: [], det: {}, acdf: [] };
+// The picker order is worked out at most once a day and kept on the phone ('et2-cat'),
+// so the app opens with the same chips and tiles every time and nothing jumps while the
+// data loads. A new order is saved in the background and shown from the next open.
+const CAT_KEY = 'et2-cat', CAT_EVERY = 864e5;
+let CAT_AT = 0;
+try { const c = JSON.parse(localStorage.getItem(CAT_KEY) || 'null');
+  if (c && c.cat && Array.isArray(c.cat.label) && c.cat.label.length) { CAT = c.cat; CAT_AT = c.at || 0; } } catch (e) {}
+function refreshCatalog() {
+  if (!BASE_RULES || !BASE_RULES.cats || !lastSnapAt) return;          // wait for rules + History
+  if (CAT_AT && Date.now() - CAT_AT < CAT_EVERY) return;               // fresh enough
+  const fresh = buildCatalog(), first = !CAT_AT;
+  CAT_AT = Date.now();
+  try { localStorage.setItem(CAT_KEY, JSON.stringify({ at: CAT_AT, cat: fresh })); } catch (e) {}
+  if (first) { CAT = fresh; renderPickers(); }                         // first open ever: show it now
+}
+// names you added with "+ New" show at once, at the end
+function withExtra(list, extra) {
+  const have = new Set(list.map(i => i.k)), add = [];
+  (extra || []).forEach(v => { const k = NORM(v); if (k && !have.has(k)) { have.add(k); add.push({ k, s: v }); } });
+  return add.length ? list.concat(add) : list;
+}
+function setHtml(el, h) { if (el.__h !== h) { el.__h = h; el.innerHTML = h; } }
 
 /* base {KEY: [count, spelling, ...]} + recent {KEY: {n, s}} + extra [names] -> [{k, s}] by use */
 function ranked(base, recent, extra) {
@@ -606,18 +628,19 @@ function tilesHtml(list, cur) {
 function renderPickers() {
   const $ = id => document.getElementById(id);
   if (!$('pkA')) return;
-  CAT = buildCatalog();
-  if (!PICK.a && CAT.acct.length) PICK.a = CAT.acct[0].s;
-  $('pkA').innerHTML = chipsHtml('a', CAT.acct, PICK.a);
-  $('pkL').innerHTML = tilesHtml(CAT.label, PICK.l);
+  if (!CAT.label.length) CAT = buildCatalog();   // nothing saved yet: built-in lists until the data arrives
+  const acct = withExtra(CAT.acct, EXTRA.acct), labels = withExtra(CAT.label, EXTRA.label);
+  if (!PICK.a && acct.length) PICK.a = acct[0].s;
+  setHtml($('pkA'), chipsHtml('a', acct, PICK.a));
+  setHtml($('pkL'), tilesHtml(labels, PICK.l));
   $('cardDetails').classList.toggle('hidden', !PICK.l);
-  $('pkD').innerHTML = PICK.l ? chipsHtml('d', CAT.det[NORM(PICK.l)] || [], PICK.d) : '';
+  setHtml($('pkD'), PICK.l ? chipsHtml('d', withExtra(CAT.det[NORM(PICK.l)] || [], EXTRA.det[NORM(PICK.l)]), PICK.d) : '');
   const tr = isTransferPick();
   $('cardAccountPlus').classList.toggle('hidden', !tr);
   $('cardAssetclass').classList.toggle('hidden', !tr);
   if (tr) {
-    $('pkA2').innerHTML = chipsHtml('a2', CAT.acct.filter(i => i.k !== NORM(PICK.a)), PICK.a2);
-    $('pkX').innerHTML = chipsHtml('x', [{ k: '', s: '' }].concat(CAT.acdf), PICK.x);
+    setHtml($('pkA2'), chipsHtml('a2', acct.filter(i => i.k !== NORM(PICK.a)), PICK.a2));
+    setHtml($('pkX'), chipsHtml('x', [{ k: '', s: '' }].concat(withExtra(CAT.acdf, EXTRA.acdf)), PICK.x));
   }
 }
 function pick(key, v) {
@@ -625,7 +648,7 @@ function pick(key, v) {
   if (key === 'l') {
     if (NORM(v) !== NORM(PICK.l)) {
       PICK.l = v; OPEN.d = false;
-      const ds = CAT.det[NORM(v)] || buildCatalog().det[NORM(v)] || [];
+      const ds = withExtra(CAT.det[NORM(v)] || [], EXTRA.det[NORM(v)]);
       PICK.d = ds.length ? ds[0].s : '';
     }
   } else PICK[key] = v;
@@ -853,7 +876,7 @@ function setRules(base) {
     label: Object.assign({}, BASE_RULES.label, RULE_OVER.label),
     ld: BASE_RULES.ld || {}, al: BASE_RULES.al || {}, multi: BASE_RULES.multi || [], rows: BASE_RULES.rows || 0, at: BASE_RULES.at || 0
   };
-  renderPickers();
+  refreshCatalog();
   drawAmount();
 }
 /* pure: form row {a, v, l, dt, acdf, ...} -> {row with every column} or {missing:{acct, label}} */
@@ -972,7 +995,7 @@ function rebuildView() {
   MONTHS.forEach((m, ym) => { for (const id in m.rows) out.push(viewRow(id, ym, m.rows[id], m.rows)); });
   out.sort((x, y) => (rowTime(y._tx) - rowTime(x._tx)) || ((y._tx.o || 0) - (x._tx.o || 0)));
   VIEW_ROWS = out;
-  renderPickers();   // "most used" follows your latest entries
+  refreshCatalog();   // at most once a day; shown from the next open
 }
 function getCachedRows() { return VIEW_ROWS; }
 function historyVisible() { return document.getElementById('viewHistory').classList.contains('active'); }
