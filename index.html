@@ -39,6 +39,21 @@
                    text-transform: uppercase; letter-spacing: .4px; }
 .rule-form input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 16px; }
 .rule-form .rule-note { font-size: 13px; color: var(--secondary); line-height: 1.4; }
+/* pickers: chips (accounts, details, asset) and tiles (labels), all tap, no scroll wheel */
+.pk-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.pk-chip { background: var(--input-bg); border: 1.5px solid transparent; border-radius: 16px; padding: 7px 12px;
+           font: inherit; font-size: 14px; color: var(--text); cursor: pointer; }
+.pk-chip.on { background: var(--primary); color: #fff; }
+.pk-chip.more, .pk-chip.add { background: none; border-color: var(--input-bg); color: var(--primary); }
+.pk-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.pk-tile { background: var(--input-bg); border: 2px solid transparent; border-radius: 12px; padding: 8px 2px 6px;
+           text-align: center; cursor: pointer; font: inherit; color: var(--text); min-width: 0; }
+.pk-tile .ic { display: block; font-size: 22px; line-height: 26px; height: 26px; }
+.pk-tile .ic.letter { font-size: 16px; font-weight: 700; color: var(--secondary); }
+.pk-tile .nm { display: block; font-size: 10px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-tile.on { border-color: var(--primary); background: rgba(0,122,255,0.1); }
+.pk-tile.add { background: none; border: 2px dashed var(--input-bg); color: var(--primary); }
+.pk-chip:active, .pk-tile:active { opacity: 0.7; }
 </style>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -329,19 +344,6 @@ body {
 <div id="viewForm" class="view active">
 <div class="container">
 
-  <!-- Account (-) -->
-  <div class="card">
-    <div class="field-row">
-      <span class="field-label">Account (−)</span>
-      <button class="edit-btn" data-roll="accountMinus">Edit</button>
-    </div>
-    <div class="text-roll-wrapper" id="rollAccountMinus">
-      <div class="text-roll-highlight"></div>
-      <div class="text-roll-track"></div>
-    </div>
-    <input type="text" class="free-text-input" id="freeAccountMinus" placeholder="Or type custom...">
-  </div>
-
   <!-- Value -->
   <div class="card">
     <div class="field-label">Value</div>
@@ -355,56 +357,32 @@ body {
     <input type="number" class="free-text-input" id="manualValue" placeholder="Or type value manually...">
   </div>
 
-  <!-- Label -->
+  <!-- Account (-) -->
   <div class="card">
-    <div class="field-row">
-      <span class="field-label">Label</span>
-      <button class="edit-btn" data-roll="label">Edit</button>
-    </div>
-    <div class="text-roll-wrapper" id="rollLabel">
-      <div class="text-roll-highlight"></div>
-      <div class="text-roll-track"></div>
-    </div>
-    <input type="text" class="free-text-input" id="freeLabel" placeholder="Or type custom...">
+    <div class="field-label">Account (−)</div>
+    <div class="pk-row" id="pkA"></div>
   </div>
 
-  <!-- Details -->
+  <!-- Label: every label in your data, as tiles -->
   <div class="card">
-    <div class="field-row">
-      <span class="field-label">Details</span>
-      <button class="edit-btn" data-roll="details">Edit</button>
-    </div>
-    <div class="text-roll-wrapper" id="rollDetails">
-      <div class="text-roll-highlight"></div>
-      <div class="text-roll-track"></div>
-    </div>
-    <input type="text" class="free-text-input" id="freeDetails" placeholder="Or type custom...">
+    <div class="field-label">Label</div>
+    <div class="pk-grid" id="pkL"></div>
   </div>
 
-  <!-- Account (+) — only visible when Label = Transfer -->
-  <div class="card" id="cardAccountPlus">
-    <div class="field-row">
-      <span class="field-label">Account (+)</span>
-      <button class="edit-btn" data-roll="accountPlus">Edit</button>
-    </div>
-    <div class="text-roll-wrapper" id="rollAccountPlus">
-      <div class="text-roll-highlight"></div>
-      <div class="text-roll-track"></div>
-    </div>
-    <input type="text" class="free-text-input" id="freeAccountPlus" placeholder="Or type custom...">
+  <!-- Details of the picked label -->
+  <div class="card hidden" id="cardDetails">
+    <div class="field-label">Details</div>
+    <div class="pk-row" id="pkD"></div>
   </div>
 
-  <!-- Assetclassdetails — only visible when Label = Transfer -->
-  <div class="card" id="cardAssetclass">
-    <div class="field-row">
-      <span class="field-label">Asset Class Details</span>
-      <button class="edit-btn" data-roll="assetclass">Edit</button>
-    </div>
-    <div class="text-roll-wrapper" id="rollAssetclass">
-      <div class="text-roll-highlight"></div>
-      <div class="text-roll-track"></div>
-    </div>
-    <input type="text" class="free-text-input" id="freeAssetclass" placeholder="Or type custom (optional)...">
+  <!-- Account (+) and asset: only for Transfer -->
+  <div class="card hidden" id="cardAccountPlus">
+    <div class="field-label">Account (+)</div>
+    <div class="pk-row" id="pkA2"></div>
+  </div>
+  <div class="card hidden" id="cardAssetclass">
+    <div class="field-label">Asset Class Details</div>
+    <div class="pk-row" id="pkX"></div>
   </div>
 
   <!-- Submit -->
@@ -415,9 +393,8 @@ body {
 
   <!-- Tools -->
   <div class="card">
-    <button class="btn btn-secondary" id="btnExport" style="margin-top:0;">Export categories</button>
-    <button class="btn btn-secondary" id="btnExportData">Export data (JSON backup)</button>
-    <button class="btn btn-secondary" id="btnRules">Rebuild rules from your data</button>
+    <button class="btn btn-secondary" id="btnExportData" style="margin-top:0;">Export data (JSON backup)</button>
+    <button class="btn btn-secondary" id="btnRules">Refresh labels and rules from your data</button>
     <div class="acct-line"><span id="acctEmail"></span> · <button type="button" id="acctOut">Sign out</button></div>
   </div>
 
@@ -429,7 +406,7 @@ body {
 <div class="container">
   <div class="card">
     <div class="history-head">
-      <div class="field-label">Recent Entries</div>
+      <div class="field-label">Last 100 entries</div>
       <button id="syncStatus" class="sync-status" type="button" aria-live="polite"></button>
     </div>
     <input type="search" id="historySearch" class="history-search" placeholder="Search: words or amounts…"
@@ -437,41 +414,6 @@ body {
     <div id="recentList"><div class="spinner"></div></div>
   </div>
 </div>
-</div>
-
-<!-- CATEGORY EDITOR MODAL -->
-<div class="modal-overlay hidden" id="editModal">
-  <div class="modal">
-    <div class="modal-header">
-      <button id="editModalReset" class="reset-link">Reset</button>
-      <span id="editModalTitle">Edit</span>
-      <button id="editModalClose">Done</button>
-    </div>
-    <div class="modal-sublabel hidden" id="editDetailsLabelRow">
-      <span>Details for label:</span>
-      <select id="editDetailsLabelSelect"></select>
-    </div>
-    <div class="modal-list" id="editModalList"></div>
-    <div class="modal-add">
-      <input type="text" id="editModalInput" placeholder="New category..." autocapitalize="none">
-      <button id="editModalAdd">Add</button>
-    </div>
-  </div>
-</div>
-
-<!-- EXPORT MODAL -->
-<div class="modal-overlay hidden" id="exportModal">
-  <div class="modal">
-    <div class="modal-header">
-      <span id="editModalTitle">Export categories</span>
-      <button id="exportModalClose">Done</button>
-    </div>
-    <div class="export-body">
-      <p class="export-note">Copy this and send it to Kiro to update the <code>index.html</code> defaults.</p>
-      <textarea class="export-text" id="exportText" readonly spellcheck="false"></textarea>
-      <button class="export-copy" id="exportCopy">Copy to clipboard</button>
-    </div>
-  </div>
 </div>
 
 <!-- NEW-RULE MODAL (a label or account the rules have never seen) -->
@@ -495,10 +437,12 @@ body {
 let STORE = null;      // set by ET2.start() once signed in (or the fake in tests)
 
 // ============================================================
-// DATA LISTS (defaults + user-editable). v2 keeps them in Firestore
-// (meta/settings.listsj) so phone and laptop share one copy; localStorage
-// 'et2-lists' is only an offline copy. v1's key 'expenseTrackerLists' is READ
-// ONCE as the seed and never written, so v1 is untouched.
+// PICKER LISTS. What the pickers offer comes from your real data (every month the
+// sankey reads), so labels, details and accounts are exactly the sankey's. They are
+// counted when the rules are built (BASE_RULES.cats) and ordered by use: the months
+// History listens to first, then all-time. EXTRA keeps names you add with "+ New"
+// that are not in the data yet (meta/settings.extraj, offline copy 'et2-extra').
+// DEFAULT_LISTS is only a fallback until the data has been read once.
 // ============================================================
 const DEFAULT_LISTS = {
   accountMinus: ['AMEXPLATINUM','FINECO','AMEX','TRADEREPUBLIC','SATISPAY','EDENRED','CONCUR','CASH','OBJECTS','REVOLUT','SPLITWISE','PAYPAL','AMEXGOLD','DEGIRO','DIRECTASTOCKS','MEMBERSHIP','TRENITALIA','ITALO','PRIAMO','TFR','UPWORK','CREDITS','UNIPOL','DEBTS','ALLIANZ','TFRTAXES','FIDELITY','TRSTOCKS','DIRECTAFUNDS','AROMI','CAPGAIN'],
@@ -530,77 +474,30 @@ const DEFAULT_LISTS = {
   assetclass: ['','VWCE','PENSIONFUND','AMS:IMAE','APPLEWATCH','AUTOMOBILE','IPAD','IPHONE','LON:IUSE','TV','EMERGENCYFUND']
 };
 
-const LISTS_STORAGE_KEY = 'et2-lists';          // v2 offline copy
-const V1_LISTS_KEY = 'expenseTrackerLists';      // v1 (read once as seed, never written)
-
-function mergeDetails(stored) {
-  // details is keyed by label. Start from defaults, then override per-label
-  // arrays with any stored ones. Ignore any old flat-array format.
-  const out = {};
-  Object.keys(DEFAULT_LISTS.details).forEach(lbl => {
-    out[lbl] = DEFAULT_LISTS.details[lbl].slice();
-  });
-  if (stored && typeof stored === 'object' && !Array.isArray(stored)) {
-    Object.keys(stored).forEach(lbl => {
-      if (Array.isArray(stored[lbl])) out[lbl] = stored[lbl].slice();
-    });
+const EXTRA_KEY = 'et2-extra';
+function cleanExtra(x) {
+  const ok = a => Array.isArray(a) ? a.filter(v => typeof v === 'string' && v.trim()) : [];
+  const o = { acct: [], label: [], det: {}, acdf: [] };
+  if (x && typeof x === 'object') {
+    o.acct = ok(x.acct); o.label = ok(x.label); o.acdf = ok(x.acdf);
+    if (x.det && typeof x.det === 'object') for (const l in x.det) o.det[l] = ok(x.det[l]);
   }
-  return out;
+  return o;
 }
-
-function normLists(stored) {
-  const result = {};
-  Object.keys(DEFAULT_LISTS).forEach(key => {
-    if (key === 'details') {
-      result.details = mergeDetails(stored && stored.details);
-    } else {
-      result[key] = (stored && Array.isArray(stored[key])) ? stored[key].slice() : DEFAULT_LISTS[key].slice();
-    }
-  });
-  // Keep Account (+) in sync with Account (−): same accounts, plus a leading blank.
-  const accounts = result.accountMinus.filter(x => String(x).trim() !== '');
-  result.accountPlus = ['', ...accounts];
-  return result;
+function loadExtra() {
+  try { return cleanExtra(JSON.parse(localStorage.getItem(EXTRA_KEY) || 'null')); }
+  catch (e) { return cleanExtra(null); }
 }
-function loadLists() {
-  let stored = null;
-  try { stored = JSON.parse(localStorage.getItem(LISTS_STORAGE_KEY)); } catch (e) { stored = null; }
-  if (!stored) { try { stored = JSON.parse(localStorage.getItem(V1_LISTS_KEY)); } catch (e) { stored = null; } }
-  return normLists(stored);
+let EXTRA = loadExtra();
+function saveExtra() {
+  const j = JSON.stringify(EXTRA);
+  try { localStorage.setItem(EXTRA_KEY, j); } catch (e) {}
+  if (STORE) STORE.setSettings({ extraj: j }).catch(() => {});
 }
-
-// Saved locally at once and to the cloud in the background (queued offline).
-function saveLists() {
-  const j = JSON.stringify(LISTS);
-  try { localStorage.setItem(LISTS_STORAGE_KEY, j); } catch (e) {}
-  if (STORE) STORE.setSettings({ listsj: j }).catch(() => {});
+function applyCloudExtra(S) {
+  if (!S || typeof S.extraj !== 'string') return;
+  try { EXTRA = cleanExtra(JSON.parse(S.extraj)); localStorage.setItem(EXTRA_KEY, S.extraj); } catch (e) {}
 }
-// Cloud copy wins on start; the first time, the local/v1 lists seed the cloud.
-function applyCloudLists(settings) {
-  if (settings && typeof settings.listsj === 'string') {
-    let c = null; try { c = JSON.parse(settings.listsj); } catch (e) { c = null; }
-    if (c) {
-      const n = normLists(c);
-      Object.keys(LISTS).forEach(k => delete LISTS[k]);
-      Object.assign(LISTS, n);
-      try { localStorage.setItem(LISTS_STORAGE_KEY, settings.listsj); } catch (e) {}
-      [rollAccountMinus, rollLabelInstance, rollAccountPlusInstance, rollAssetclass].forEach(r => r && r.refresh());
-      refreshDetailsForLabel();
-      return;
-    }
-  }
-  saveLists();
-}
-
-const LISTS = loadLists();
-
-const LIST_TITLES = {
-  accountMinus: 'Account (−)',
-  label: 'Label',
-  details: 'Details',
-  accountPlus: 'Account (+)',
-  assetclass: 'Asset Class Details'
-};
 
 // ============================================================
 // HAPTIC FEEDBACK
@@ -616,167 +513,129 @@ let editingRow = null;
 const ITEM_HEIGHT = 40;
 
 // ============================================================
-// LABEL -> DETAILS DEPENDENCY
+// TAP PICKERS. Account and details are chips (most used first, "All" shows the rest),
+// labels are tiles (all of them on one screen). PICK holds the current choice.
 // ============================================================
-function currentLabel() {
-  return rollLabelInstance ? rollLabelInstance.getValue() : '';
-}
-function findDetailsKey(label) {
-  if (!label) return null;
-  if (Object.prototype.hasOwnProperty.call(LISTS.details, label)) return label;
-  const lower = String(label).toLowerCase();
-  return Object.keys(LISTS.details).find(k => k.toLowerCase() === lower) || null;
-}
-function detailsListForLabel(label) {
-  const key = findDetailsKey(label);
-  return key ? LISTS.details[key] : [];
-}
-function currentDetailsList() {
-  return detailsListForLabel(currentLabel());
-}
-function refreshDetailsForLabel() {
-  if (!rollDetails) return;
-  rollDetails.freeInput.value = '';
-  rollDetails.currentIndex = 0;
-  rollDetails.refresh();
-  updateTransferSections();
-}
-function updateTransferSections() {
-  const isTransfer = (currentLabel() || '').toLowerCase() === 'transfer';
-  const ap = document.getElementById('cardAccountPlus');
-  const ac = document.getElementById('cardAssetclass');
-  if (ap) ap.classList.toggle('hidden', !isTransfer);
-  if (ac) ac.classList.toggle('hidden', !isTransfer);
-}
-function ensureDetailsKey(label) {
-  let key = findDetailsKey(label);
-  if (!key) { key = label; LISTS.details[key] = []; }
-  return key;
-}
+const PICK = { a: '', l: '', d: '', a2: '', x: '' };
+const OPEN = { a: false, a2: false, d: false };
+const TOP = { a: 6, a2: 6, d: 9, x: 0 };
+const ICONS = { GROCERIES: '\u{1F6D2}', RESTAURANTS: '\u{1F37D}\uFE0F', TRANSPORTATION: '\u{1F695}', AMUSEMENTS: '\u{1F389}',
+  FOOD: '\u{1F950}', TRANSFER: '\u{1F501}', BILLS: '\u{1F4A1}', HOUSING: '\u{1F3E0}', WELLBEING: '\u{1F9D8}', CAR: '\u{1F697}',
+  HEALTHCARE: '\u{1F48A}', WORK: '\u{1F4BC}', HOLIDAYS: '\u2708\uFE0F', CLOTHES: '\u{1F455}', PRESENTS: '\u{1F381}',
+  OBJECTS: '\u{1F4E6}', OFFERS: '\u{1F64F}', SALARY: '\u{1F4B6}', TAXES: '\u{1F9FE}', EXTRA: '\u2795', APPRECIATION: '\u{1F4C8}' };
+let CAT = { acct: [], label: [], det: {}, acdf: [] };
 
-// ============================================================
-// TEXT ROLL PICKER CLASS
-// ============================================================
-class TextRoll {
-  constructor(wrapperId, listKey, freeInputId, getItemsFn) {
-    this.wrapper = document.getElementById(wrapperId);
-    this.track = this.wrapper.querySelector('.text-roll-track');
-    this.freeInput = document.getElementById(freeInputId);
-    this.listKey = listKey;
-    this.getItemsFn = getItemsFn || (() => LISTS[listKey]);
-    this.onChange = null;
-    this.items = this.getItemsFn();
-    this.currentIndex = 0;
-    this.hoverIndex = 0;
-    this.isDragging = false;
-    this.velocity = 0;
-    this.lastTouchY = 0;
-    this.lastTouchTime = 0;
-    this.touchStartY = 0;
-    this.build();
-    this.initTouch();
-    this.initFreeInput();
+/* base {KEY: [count, spelling, ...]} + recent {KEY: {n, s}} + extra [names] -> [{k, s}] by use */
+function ranked(base, recent, extra) {
+  const m = new Map();
+  for (const k in base) m.set(k, { k, s: base[k][1], n: base[k][0], r: 0 });
+  for (const k in recent) { const e = m.get(k); if (e) e.r = recent[k].n; else m.set(k, { k, s: recent[k].s, n: 0, r: recent[k].n }); }
+  (extra || []).forEach(s => { const k = NORM(s); if (k && !m.has(k)) m.set(k, { k, s, n: 0, r: 0 }); });
+  return [...m.values()].sort((x, y) => (y.r - x.r) || (y.n - x.n) || x.s.localeCompare(y.s));
+}
+function fallbackCats() {
+  const acct = {}, label = {}, acdf = {};
+  DEFAULT_LISTS.accountMinus.forEach((s, i) => { acct[NORM(s)] = [1000 - i, s]; });
+  DEFAULT_LISTS.label.forEach((s, i) => {
+    const det = {}; (DEFAULT_LISTS.details[s] || []).forEach((d, j) => { det[NORM(d)] = [1000 - j, d]; });
+    label[NORM(s)] = [1000 - i, s, det];
+  });
+  DEFAULT_LISTS.assetclass.filter(Boolean).forEach((s, i) => { acdf[NORM(s)] = [1000 - i, s]; });
+  return { acct, label, acdf };
+}
+function buildCatalog() {
+  const C = (BASE_RULES && BASE_RULES.cats) || fallbackCats();
+  const rA = {}, rL = {}, rD = {}, rX = {};
+  const bump = (o, raw) => { const s = String(raw == null ? '' : raw).trim(), k = NORM(s); if (!k) return;
+    const e = o[k] || (o[k] = { n: 0, s }); e.n++; };
+  VIEW_ROWS.forEach(r => {
+    const t = r._tx, l = NORM(t.l); if (!NORM(t.a) || !l) return;
+    bump(rA, t.a); bump(rL, t.l); bump(rD[l] || (rD[l] = {}), t.dt); bump(rX, t.acdf);
+  });
+  const label = ranked(C.label, rL, EXTRA.label), det = {};
+  label.forEach(i => { det[i.k] = ranked((C.label[i.k] && C.label[i.k][2]) || {}, rD[i.k] || {}, EXTRA.det[i.k]); });
+  let acdf = ranked(C.acdf || {}, rX, EXTRA.acdf);
+  if (!acdf.length) acdf = ranked(fallbackCats().acdf, {}, []);
+  return { acct: ranked(C.acct, rA, EXTRA.acct), label, det, acdf };
+}
+function isTransferPick() { return NORM(PICK.l) === 'TRANSFER'; }
+function niceName(s) { return /[a-z]/.test(s) ? s : s.charAt(0) + s.slice(1).toLowerCase(); }
+function chipsHtml(key, list, cur) {
+  const ck = NORM(cur), top = TOP[key];
+  let shown = list, more = false;
+  if (top && !OPEN[key] && list.length > top) { shown = list.slice(0, top); more = true; }
+  if (!shown.some(i => i.k === ck) && (ck || key === 'x')) {
+    const c = list.find(i => i.k === ck); if (c || ck) shown = shown.concat([c || { k: ck, s: cur }]);
   }
-
-  build() {
-    this.items = this.getItemsFn();
-    this.track.innerHTML = '';
-    this.items.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'text-roll-item';
-      div.textContent = item;
-      this.track.appendChild(div);
-    });
-    this.setIndex(Math.min(this.currentIndex, this.items.length - 1));
+  let h = shown.map(i => `<button type="button" class="pk-chip${i.k === ck ? ' on' : ''}" data-k="${key}" data-v="${esc(i.s)}">${esc(i.s || 'None')}</button>`).join('');
+  h += more ? `<button type="button" class="pk-chip more" data-more="${key}">All ${list.length}\u2026</button>`
+            : `<button type="button" class="pk-chip add" data-add="${key}">\uFF0B New</button>`;
+  return h;
+}
+function tilesHtml(list, cur) {
+  const ck = NORM(cur);
+  const all = (ck && !list.some(i => i.k === ck)) ? list.concat([{ k: ck, s: cur }]) : list;
+  return all.map(i => {
+    const ic = ICONS[i.k];
+    return `<button type="button" class="pk-tile${i.k === ck ? ' on' : ''}" data-k="l" data-v="${esc(i.s)}">` +
+      (ic ? `<span class="ic">${ic}</span>` : `<span class="ic letter">${esc(i.s.charAt(0).toUpperCase())}</span>`) +
+      `<span class="nm">${esc(niceName(i.s))}</span></button>`;
+  }).join('') + `<button type="button" class="pk-tile add" data-add="l"><span class="ic">\uFF0B</span><span class="nm">New</span></button>`;
+}
+function renderPickers() {
+  const $ = id => document.getElementById(id);
+  if (!$('pkA')) return;
+  CAT = buildCatalog();
+  if (!PICK.a && CAT.acct.length) PICK.a = CAT.acct[0].s;
+  $('pkA').innerHTML = chipsHtml('a', CAT.acct, PICK.a);
+  $('pkL').innerHTML = tilesHtml(CAT.label, PICK.l);
+  $('cardDetails').classList.toggle('hidden', !PICK.l);
+  $('pkD').innerHTML = PICK.l ? chipsHtml('d', CAT.det[NORM(PICK.l)] || [], PICK.d) : '';
+  const tr = isTransferPick();
+  $('cardAccountPlus').classList.toggle('hidden', !tr);
+  $('cardAssetclass').classList.toggle('hidden', !tr);
+  if (tr) {
+    $('pkA2').innerHTML = chipsHtml('a2', CAT.acct.filter(i => i.k !== NORM(PICK.a)), PICK.a2);
+    $('pkX').innerHTML = chipsHtml('x', [{ k: '', s: '' }].concat(CAT.acdf), PICK.x);
   }
-
-  refresh() {
-    this.items = this.getItemsFn();
-    if (this.currentIndex > this.items.length - 1) this.currentIndex = 0;
-    this.build();
-  }
-
-  setIndex(idx) {
-    idx = Math.max(0, Math.min(this.items.length - 1, idx));
-    const changed = idx !== this.currentIndex;
-    this.currentIndex = idx;
-    this.hoverIndex = idx;
-    this.track.style.transform = `translateY(${-idx * ITEM_HEIGHT + ITEM_HEIGHT}px)`;
-    const children = this.track.children;
-    for (let i = 0; i < children.length; i++) {
-      children[i].classList.toggle('selected', i === idx);
+}
+function pick(key, v) {
+  haptic(10);
+  if (key === 'l') {
+    if (NORM(v) !== NORM(PICK.l)) {
+      PICK.l = v; OPEN.d = false;
+      const ds = CAT.det[NORM(v)] || buildCatalog().det[NORM(v)] || [];
+      PICK.d = ds.length ? ds[0].s : '';
     }
-    if (changed) haptic(10);
-    this.freeInput.value = '';
-    if (this.onChange) this.onChange();
-  }
-
-  getValue() {
-    const free = this.freeInput.value.trim();
-    return free || this.items[this.currentIndex];
-  }
-
-  setValue(val) {
-    const idx = this.items.findIndex(item => item.toLowerCase() === String(val).toLowerCase());
-    if (idx >= 0) {
-      this.track.style.transition = 'transform 0.3s cubic-bezier(0.23, 1, 0.32, 1)';
-      this.setIndex(idx);
-      this.freeInput.value = '';
-    } else {
-      this.freeInput.value = val || '';
-      if (this.onChange) this.onChange();
-    }
-  }
-
-  initTouch() {
-    this.wrapper.addEventListener('touchstart', (e) => {
-      this.isDragging = true;
-      this.touchStartY = e.touches[0].clientY;
-      this.lastTouchY = this.touchStartY;
-      this.lastTouchTime = Date.now();
-      this.velocity = 0;
-      this.track.style.transition = 'none';
-    }, { passive: false });
-
-    this.wrapper.addEventListener('touchmove', (e) => {
-      if (!this.isDragging) return;
-      e.preventDefault();
-      const y = e.touches[0].clientY;
-      const now = Date.now();
-      const dt = now - this.lastTouchTime;
-      if (dt > 0) this.velocity = (y - this.lastTouchY) / dt;
-      this.lastTouchY = y;
-      this.lastTouchTime = now;
-      const delta = y - this.touchStartY;
-      const baseOffset = -this.currentIndex * ITEM_HEIGHT + ITEM_HEIGHT;
-      const offset = baseOffset + delta;
-      this.track.style.transform = `translateY(${offset}px)`;
-      const approx = Math.max(0, Math.min(this.items.length - 1, Math.round(1 - offset / ITEM_HEIGHT)));
-      if (approx !== this.hoverIndex) { this.hoverIndex = approx; haptic(6); }
-    }, { passive: false });
-
-    this.wrapper.addEventListener('touchend', () => {
-      this.isDragging = false;
-      this.track.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-      const delta = this.lastTouchY - this.touchStartY;
-      const speed = Math.abs(this.velocity);
-      const momentumFactor = speed > 1.5 ? 400 : speed > 0.8 ? 250 : 150;
-      const momentum = this.velocity * momentumFactor;
-      const totalDelta = delta + momentum;
-      const indexDelta = Math.round(-totalDelta / ITEM_HEIGHT);
-      this.setIndex(this.currentIndex + indexDelta);
-    });
-
-    this.wrapper.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      this.setIndex(this.currentIndex + (e.deltaY > 0 ? 1 : -1));
-    }, { passive: false });
-  }
-
-  initFreeInput() {
-    this.freeInput.addEventListener('input', () => { /* free text wins via getValue() */ });
+  } else PICK[key] = v;
+  if (key === 'a' && NORM(PICK.a2) === NORM(v)) PICK.a2 = '';
+  renderPickers();
+  if (key === 'l') {
+    const c = document.getElementById(isTransferPick() ? 'cardAccountPlus' : 'cardDetails');
+    if (c && c.scrollIntoView) c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 }
+function addNew(key) {
+  if (key === 'd' && !PICK.l) { showToast('Pick a label first'); return; }
+  const what = { a: 'account', a2: 'account', l: 'label', d: 'detail for ' + PICK.l, x: 'asset class detail' }[key];
+  let v = (prompt('New ' + what + ':', '') || '').trim();
+  if (!v) return;
+  if (key !== 'd') v = v.toUpperCase();   // accounts, labels and assets are upper case in your data
+  const k = NORM(v), put = arr => { if (!arr.some(x => NORM(x) === k)) arr.push(v); };
+  if (key === 'a' || key === 'a2') put(EXTRA.acct);
+  else if (key === 'l') put(EXTRA.label);
+  else if (key === 'x') put(EXTRA.acdf);
+  else { const lk = NORM(PICK.l); put(EXTRA.det[lk] || (EXTRA.det[lk] = [])); }
+  saveExtra();
+  pick(key, v);
+}
+document.getElementById('viewForm').addEventListener('click', e => {
+  const b = e.target.closest('[data-k],[data-more],[data-add]');
+  if (!b) return;
+  if (b.dataset.more) { OPEN[b.dataset.more] = true; renderPickers(); return; }
+  if (b.dataset.add) { addNew(b.dataset.add); return; }
+  pick(b.dataset.k, b.dataset.v);
+});
 
 // ============================================================
 // NUMBER ROLL (for Value field)
@@ -1005,7 +864,24 @@ function buildRules(txList) {
   // Liquidity depends on account AND label (e.g. FINECO is LIQUID, but its TRANSFER rows
   // are ILLIQUID). Keep only pairs that differ from the account's own value.
   for (const k in AL) { const v = majority(AL[k].liq); if (v !== acct[k.split('|')[0]].liq) al[k] = v; }
-  return { v: 1, at: Date.now(), rows: txList.length, acct, label, ld, al, multi };
+  return { v: 1, at: Date.now(), rows: txList.length, acct, label, ld, al, multi, cats: buildCats(txList) };
+}
+/* pure: stored rows -> what the pickers offer, same rows the sankey shows.
+   {acct: {KEY: [count, spelling]}, label: {KEY: [count, spelling, {DETAIL: [count, spelling]}]}, acdf: {...}}
+   The spelling is the one used most (the sankey also groups details by upper case). */
+function buildCats(txList) {
+  const A = {}, L = {}, X = {};
+  const add = (o, raw) => { const s = String(raw == null ? '' : raw).trim(), k = NORM(s); if (!k) return null;
+    const e = o[k] || (o[k] = { n: 0, sp: {}, det: {} }); e.n++; e.sp[s] = (e.sp[s] || 0) + 1; return e; };
+  for (const t of txList) {
+    if (!NORM(t.a) || !NORM(t.l)) continue;
+    add(A, t.a); add(X, t.acdf);
+    const el = add(L, t.l); add(el.det, t.dt);
+  }
+  const out = o => { const r = {}; for (const k in o) r[k] = [o[k].n, majority(o[k].sp)]; return r; };
+  const label = {};
+  for (const k in L) label[k] = [L[k].n, majority(L[k].sp), out(L[k].det)];
+  return { acct: out(A), label, acdf: out(X) };
 }
 function setRules(base) {
   BASE_RULES = base || { acct: {}, label: {}, ld: {}, multi: [] };
@@ -1014,6 +890,7 @@ function setRules(base) {
     label: Object.assign({}, BASE_RULES.label, RULE_OVER.label),
     ld: BASE_RULES.ld || {}, al: BASE_RULES.al || {}, multi: BASE_RULES.multi || [], rows: BASE_RULES.rows || 0, at: BASE_RULES.at || 0
   };
+  renderPickers();
 }
 /* pure: form row {a, v, l, dt, acdf, ...} -> {row with every column} or {missing:{acct, label}} */
 function deriveRow(t, R) {
@@ -1034,7 +911,8 @@ async function loadRules(S, force) {
   let base = null;
   try { base = JSON.parse(S.rulesj || 'null'); } catch (e) { base = null; }
   setRules(base);
-  if (!force && base && Date.now() - (base.at || 0) < RULES_EVERY) return base;
+  // Rebuilt weekly, or now when the saved rules predate the picker lists (no cats).
+  if (!force && base && base.cats && Date.now() - (base.at || 0) < RULES_EVERY) return base;
   try {
     const all = await STORE.loadAllMonths('months');
     const tx = [];
@@ -1089,8 +967,8 @@ function askRule(missing, then) {
 // it when the phone is online. History is a live listener on the last months.
 //   COL = "sandbox" until cutover (test mode), then "months" (your real data).
 // ============================================================
-const HISTORY_PAGE = 100;   // rows rendered per "Show more" step
-const MONTH_STEP = 3;       // months listened to; "Older months" adds 3 more
+const HISTORY_PAGE = 100;   // History shows the newest 100 entries only
+const MONTH_STEP = 3;       // months listened to (enough for 100 entries, and for "most used")
 let COL = 'sandbox';
 let SETTINGS = {};
 let histMonths = MONTH_STEP;
@@ -1130,6 +1008,7 @@ function rebuildView() {
   MONTHS.forEach((m, ym) => { for (const id in m.rows) out.push(viewRow(id, ym, m.rows[id], m.rows)); });
   out.sort((x, y) => (rowTime(y._tx) - rowTime(x._tx)) || ((y._tx.o || 0) - (x._tx.o || 0)));
   VIEW_ROWS = out;
+  renderPickers();   // "most used" follows your latest entries
 }
 function getCachedRows() { return VIEW_ROWS; }
 function historyVisible() { return document.getElementById('viewHistory').classList.contains('active'); }
@@ -1177,11 +1056,11 @@ function fmtSyncTime(ms) {
 // ============================================================
 function handleSubmit() {
   if (!STORE) { showToast('Not signed in yet'); return; }
-  const accountMinus = rollAccountMinus.getValue();
-  const label = rollLabelInstance.getValue();
-  const details = rollDetails.getValue();
-  const accountPlus = rollAccountPlusInstance.getValue();
-  const assetclass = rollAssetclass.getValue();
+  const accountMinus = PICK.a.trim();
+  const label = PICK.l.trim();
+  const details = PICK.d.trim();
+  const accountPlus = PICK.a2.trim();
+  const assetclass = PICK.x.trim();
   let value = getValueFromForm();
 
   if (!accountMinus) { showToast('Account (−) is required'); return; }
@@ -1264,16 +1143,8 @@ async function exportData() {
 // FORM HELPERS
 // ============================================================
 function resetForm() {
-  rollAccountMinus.setIndex(0);
-  rollLabelInstance.setIndex(0);
-  rollDetails.setIndex(0);
-  rollAccountPlusInstance.setIndex(0);
-  rollAssetclass.setIndex(0);
-  document.getElementById('freeAccountMinus').value = '';
-  document.getElementById('freeLabel').value = '';
-  document.getElementById('freeDetails').value = '';
-  document.getElementById('freeAccountPlus').value = '';
-  document.getElementById('freeAssetclass').value = '';
+  Object.keys(PICK).forEach(k => { PICK[k] = ''; });
+  Object.keys(OPEN).forEach(k => { OPEN[k] = false; });
   document.getElementById('manualValue').value = '';
   setNumIndex(0);
   isNegative = true;
@@ -1282,24 +1153,19 @@ function resetForm() {
   editingRow = null;
   document.getElementById('btnSubmit').textContent = 'Submit';
   document.getElementById('btnCancel').classList.add('hidden');
-  updateTransferSections();
-  // Snap back to the first roll selector (Account (−)) so the next entry
-  // starts from the top of the form.
-  const firstRoll = document.getElementById('rollAccountMinus');
-  if (firstRoll && typeof firstRoll.scrollIntoView === 'function') {
-    firstRoll.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  } else {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+  renderPickers();
+  // Back to the top so the next entry starts with the value.
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function populateForm(row) {
   editingRow = row;
-  rollAccountMinus.setValue(row.accountMinus || '');
-  rollLabelInstance.setValue(row.label || '');
-  rollDetails.setValue(row.details || '');
-  rollAccountPlusInstance.setValue(row.accountPlus || '');
-  rollAssetclass.setValue(row.assetclassdetails || '');
+  PICK.a = row.accountMinus || '';
+  PICK.l = row.label || '';
+  PICK.d = row.details || '';
+  PICK.a2 = row.accountPlus || '';
+  PICK.x = row.assetclassdetails || '';
+  renderPickers();
 
   const val = parseInt(row.value) || 0;
   isNegative = val < 0;
@@ -1324,7 +1190,6 @@ function populateForm(row) {
     items[i].classList.toggle('selected', i === closestIdx);
   }
 
-  updateTransferSections();
   document.getElementById('btnSubmit').textContent = 'Update';
   document.getElementById('btnCancel').classList.remove('hidden');
   showView('viewForm');
@@ -1373,13 +1238,13 @@ function rowMatches(row, terms) {
 
 function renderRecent(rows) {
   updateSyncStatus();
-  const older = `<button class="btn-more" type="button" data-older="1">Older months</button>`;
   const terms = searchTerms();
-  if (terms.length && rows && rows.length) {
+  rows = (rows || []).slice(0, HISTORY_PAGE);
+  if (terms.length && rows.length) {
     rows = rows.filter(r => rowMatches(r, terms));
     if (rows.length === 0) {
       renderedRows = [];
-      setListHtml(`<p style="color:var(--secondary);font-size:14px;">No matches in the last ${histMonths} months.</p>` + older);
+      setListHtml('<p style="color:var(--secondary);font-size:14px;">No matches in the last 100 entries.</p>');
       return;
     }
   }
@@ -1389,10 +1254,10 @@ function renderRecent(rows) {
       ? '<div class="spinner"></div>'
       : watchErr
         ? '<p style="color:var(--secondary);font-size:14px;">Failed to load. Tap the status above to retry.</p>'
-        : `<p style="color:var(--secondary);font-size:14px;">No entries in the last ${histMonths} months.</p>` + older);
+        : '<p style="color:var(--secondary);font-size:14px;">No entries yet.</p>');
     return;
   }
-  const shown = rows.slice(0, historyLimit);
+  const shown = rows;
   renderedRows = shown;
   const html = shown.map((row, i) => {
     const valClass = toNum(row.value) >= 0 ? 'positive' : 'negative';
@@ -1407,15 +1272,12 @@ function renderRecent(rows) {
         <span class="re-value ${valClass}">${esc(fmtValue(row.value))}</span>
         <span class="re-time">${esc(row.timestamp)}</span>
       </div>
-      <div class="re-details">${esc(row.accountMinus)} · ${esc(row.label)} · ${esc(row.details)}</div>
+      <div class="re-details">${ICONS[NORM(row.label)] ? ICONS[NORM(row.label)] + ' ' : ''}${esc(row.accountMinus)} · ${esc(row.label)} · ${esc(row.details)}</div>
       ${statusHtml}
       <button class="btn-delete-entry" type="button" aria-label="Delete entry">✕</button>
     </div>`;
   }).join('');
-  const more = rows.length > shown.length
-    ? `<button class="btn-more" type="button" data-more="1">Show more (${rows.length - shown.length})</button>`
-    : older;
-  setListHtml(html + more);
+  setListHtml(html);
 }
 
 // A transfer is two rows; editing either one edits the pair from its first row.
@@ -1426,18 +1288,6 @@ function primaryOf(row) {
 }
 
 document.getElementById('recentList').addEventListener('click', (e) => {
-  if (e.target.closest('[data-more]')) {
-    historyLimit += HISTORY_PAGE;
-    renderRecent(getCachedRows());
-    return;
-  }
-  if (e.target.closest('[data-older]')) {
-    histMonths += MONTH_STEP;
-    lastSnapAt = 0;
-    watchHistory();
-    renderRecent(getCachedRows());
-    return;
-  }
   const item = e.target.closest('.recent-entry');
   if (!item) return;
   const row = renderedRows[Number(item.dataset.i)];
@@ -1486,253 +1336,6 @@ document.getElementById('btnSubmit').addEventListener('click', handleSubmit);
 document.getElementById('btnCancel').addEventListener('click', resetForm);
 
 // ============================================================
-// CATEGORY EDITOR (add / remove / reorder items per section)
-// ============================================================
-let activeEditorRoll = null;
-let editorDetailsLabel = null;
-
-function activeEditorArray() {
-  if (!activeEditorRoll) return null;
-  if (activeEditorRoll.listKey === 'details') {
-    return LISTS.details[ensureDetailsKey(editorDetailsLabel)];
-  }
-  return LISTS[activeEditorRoll.listKey];
-}
-
-function buildDetailsLabelSelect() {
-  const sel = document.getElementById('editDetailsLabelSelect');
-  sel.innerHTML = '';
-  LISTS.label.forEach(lbl => {
-    const opt = document.createElement('option');
-    opt.value = lbl; opt.textContent = lbl;
-    sel.appendChild(opt);
-  });
-  const match = LISTS.label.find(l => l.toLowerCase() === String(editorDetailsLabel).toLowerCase());
-  sel.value = match || (LISTS.label[0] || '');
-  editorDetailsLabel = sel.value;
-}
-
-function rollByKey(key) {
-  switch (key) {
-    case 'accountMinus': return rollAccountMinus;
-    case 'label': return rollLabelInstance;
-    case 'details': return rollDetails;
-    case 'accountPlus': return rollAccountPlusInstance;
-    case 'assetclass': return rollAssetclass;
-    default: return null;
-  }
-}
-
-function syncAccountLists(sourceKey) {
-  if (sourceKey === 'accountMinus') {
-    const accounts = LISTS.accountMinus.filter(x => String(x).trim() !== '');
-    LISTS.accountPlus = ['', ...accounts];
-  } else if (sourceKey === 'accountPlus') {
-    LISTS.accountMinus = LISTS.accountPlus.filter(x => String(x).trim() !== '');
-  }
-}
-
-function commitListChange() {
-  const key = activeEditorRoll ? activeEditorRoll.listKey : null;
-  if (key === 'accountMinus' || key === 'accountPlus') {
-    syncAccountLists(key);
-    if (rollAccountMinus) rollAccountMinus.refresh();
-    if (rollAccountPlusInstance) rollAccountPlusInstance.refresh();
-  }
-  saveLists();
-  if (activeEditorRoll) activeEditorRoll.refresh();
-  renderEditorList();
-}
-
-function renderEditorList() {
-  if (!activeEditorRoll) return;
-  const items = activeEditorArray();
-  const list = document.getElementById('editModalList');
-  list.innerHTML = '';
-  if (items.length === 0) {
-    list.innerHTML = '<p style="color:var(--secondary);font-size:14px;padding:12px 0;">No categories. Add one below.</p>';
-    return;
-  }
-  items.forEach((item, idx) => {
-    const row = document.createElement('div');
-    row.className = 'modal-item';
-    const isBlank = String(item).trim() === '';
-
-    const handle = document.createElement('span');
-    handle.className = 'drag-handle';
-    handle.textContent = '\u2630';
-    handle.title = 'Drag to reorder';
-    handle.addEventListener('pointerdown', (e) => startReorder(e, idx));
-
-    const name = document.createElement('span');
-    name.className = 'item-name' + (isBlank ? ' blank' : '');
-    name.textContent = isBlank ? '(blank)' : item;
-
-    const del = document.createElement('button');
-    del.title = 'Remove';
-    del.textContent = '\u2715';
-    del.addEventListener('click', () => { items.splice(idx, 1); commitListChange(); haptic(15); });
-
-    row.appendChild(handle);
-    row.appendChild(name);
-    row.appendChild(del);
-    list.appendChild(row);
-  });
-}
-
-let reorder = null;
-function startReorder(e, idx) {
-  if (!activeEditorRoll) return;
-  e.preventDefault();
-  const list = document.getElementById('editModalList');
-  const row = list.children[idx];
-  if (!row) return;
-  reorder = { index: idx, startY: e.clientY, rowHeight: row.offsetHeight || 44 };
-  row.classList.add('dragging');
-  haptic(15);
-  document.addEventListener('pointermove', onReorderMove);
-  document.addEventListener('pointerup', endReorder);
-  document.addEventListener('pointercancel', endReorder);
-}
-function onReorderMove(e) {
-  if (!reorder) return;
-  e.preventDefault();
-  const list = document.getElementById('editModalList');
-  const items = activeEditorArray();
-  const row = list.children[reorder.index];
-  if (!row) return;
-  const delta = e.clientY - reorder.startY;
-  row.style.transform = `translateY(${delta}px)`;
-  let target = reorder.index + Math.round(delta / reorder.rowHeight);
-  target = Math.max(0, Math.min(items.length - 1, target));
-  if (target !== reorder.index) {
-    const [moved] = items.splice(reorder.index, 1);
-    items.splice(target, 0, moved);
-    reorder.index = target;
-    reorder.startY = e.clientY;
-    renderEditorList();
-    const newRow = list.children[target];
-    if (newRow) { newRow.classList.add('dragging'); newRow.style.transform = 'translateY(0px)'; }
-    haptic(8);
-  }
-}
-function endReorder() {
-  if (!reorder) return;
-  document.removeEventListener('pointermove', onReorderMove);
-  document.removeEventListener('pointerup', endReorder);
-  document.removeEventListener('pointercancel', endReorder);
-  reorder = null;
-  commitListChange();
-  haptic(15);
-}
-
-function openCategoryEditor(key) {
-  const roll = rollByKey(key);
-  if (!roll) return;
-  activeEditorRoll = roll;
-  document.getElementById('editModalTitle').textContent = 'Edit ' + (LIST_TITLES[key] || key);
-  document.getElementById('editModalInput').value = '';
-  const detailsRow = document.getElementById('editDetailsLabelRow');
-  if (key === 'details') {
-    editorDetailsLabel = currentLabel() || (LISTS.label[0] || '');
-    buildDetailsLabelSelect();
-    detailsRow.classList.remove('hidden');
-  } else {
-    detailsRow.classList.add('hidden');
-  }
-  renderEditorList();
-  document.getElementById('editModal').classList.remove('hidden');
-}
-
-function closeCategoryEditor() {
-  document.getElementById('editModal').classList.add('hidden');
-  activeEditorRoll = null;
-}
-
-function addCategory() {
-  if (!activeEditorRoll) return;
-  const input = document.getElementById('editModalInput');
-  const val = input.value.trim();
-  if (!val) return;
-  const items = activeEditorArray();
-  if (items.some(i => String(i).toLowerCase() === val.toLowerCase())) { showToast('Already exists'); return; }
-  items.push(val);
-  commitListChange();
-  input.value = '';
-  haptic(15);
-}
-
-function resetActiveList() {
-  if (!activeEditorRoll) return;
-  const key = activeEditorRoll.listKey;
-  if (key === 'details') {
-    const lbl = editorDetailsLabel;
-    if (!confirm('Reset details for "' + lbl + '" to the built-in defaults? This discards your changes for this label.')) return;
-    const defKey = Object.keys(DEFAULT_LISTS.details).find(k => k.toLowerCase() === String(lbl).toLowerCase());
-    LISTS.details[ensureDetailsKey(lbl)] = defKey ? DEFAULT_LISTS.details[defKey].slice() : [];
-    commitListChange();
-    haptic(20);
-    showToast('Reset to defaults');
-    return;
-  }
-  const title = LIST_TITLES[key] || key;
-  if (!confirm('Reset "' + title + '" to the built-in defaults? This discards your changes for this section.')) return;
-  LISTS[key] = DEFAULT_LISTS[key].slice();
-  commitListChange();
-  haptic(20);
-  showToast('Reset to defaults');
-}
-
-// ============================================================
-// EXPORT CATEGORIES
-// ============================================================
-function openExport() {
-  document.getElementById('exportText').value = JSON.stringify(LISTS, null, 2);
-  document.getElementById('exportModal').classList.remove('hidden');
-}
-function closeExport() {
-  document.getElementById('exportModal').classList.add('hidden');
-}
-function copyExport() {
-  const ta = document.getElementById('exportText');
-  const text = ta.value;
-  const fallback = () => {
-    ta.removeAttribute('readonly'); ta.select(); ta.setSelectionRange(0, text.length);
-    try { document.execCommand('copy'); } catch (e) {}
-    ta.setAttribute('readonly', ''); window.getSelection().removeAllRanges();
-  };
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => showToast('Copied')).catch(() => { fallback(); showToast('Copied'); });
-  } else { fallback(); showToast('Copied'); }
-  haptic(15);
-}
-
-function initCategoryEditor() {
-  document.querySelectorAll('.edit-btn').forEach(btn => {
-    btn.addEventListener('click', () => openCategoryEditor(btn.dataset.roll));
-  });
-  document.getElementById('editModalClose').addEventListener('click', closeCategoryEditor);
-  document.getElementById('editModalReset').addEventListener('click', resetActiveList);
-  document.getElementById('editModalAdd').addEventListener('click', addCategory);
-  document.getElementById('editDetailsLabelSelect').addEventListener('change', (e) => {
-    editorDetailsLabel = e.target.value;
-    renderEditorList();
-  });
-  document.getElementById('editModalInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') addCategory();
-  });
-  document.getElementById('editModal').addEventListener('click', (e) => {
-    if (e.target.id === 'editModal') closeCategoryEditor();
-  });
-  document.getElementById('btnExport').addEventListener('click', openExport);
-  document.getElementById('exportModalClose').addEventListener('click', closeExport);
-  document.getElementById('exportCopy').addEventListener('click', copyExport);
-  document.getElementById('exportModal').addEventListener('click', (e) => {
-    if (e.target.id === 'exportModal') closeExport();
-  });
-}
-
-// ============================================================
 // TOAST
 // ============================================================
 function showToast(msg) {
@@ -1745,22 +1348,13 @@ function showToast(msg) {
 // ============================================================
 // INIT
 // ============================================================
-let rollAccountMinus, rollLabelInstance, rollDetails, rollAccountPlusInstance, rollAssetclass;
 let domReady;
 const domReadyP = new Promise(r => { domReady = r; });
 
 document.addEventListener('DOMContentLoaded', () => {
-  rollAccountMinus = new TextRoll('rollAccountMinus', 'accountMinus', 'freeAccountMinus');
-  rollLabelInstance = new TextRoll('rollLabel', 'label', 'freeLabel');
-  rollDetails = new TextRoll('rollDetails', 'details', 'freeDetails', currentDetailsList);
-  rollAssetclass = new TextRoll('rollAssetclass', 'assetclass', 'freeAssetclass');
-  rollAccountPlusInstance = new TextRoll('rollAccountPlus', 'accountPlus', 'freeAccountPlus');
-  rollLabelInstance.onChange = refreshDetailsForLabel;
-  document.getElementById('freeLabel').addEventListener('input', refreshDetailsForLabel);
-  refreshDetailsForLabel();
+  renderPickers();
   buildNumRoll();
   initNumRollTouch();
-  initCategoryEditor();
   document.getElementById('btnExportData').addEventListener('click', exportData);
   document.getElementById('btnRules').addEventListener('click', async () => {
     if (!STORE) return;
@@ -1784,7 +1378,8 @@ const ET2 = {
     try { SETTINGS = await STORE.getSettings(); } catch (e) { SETTINGS = {}; }
     COL = SETTINGS.cutover === true ? 'months' : 'sandbox';
     document.getElementById('modeBanner').hidden = COL !== 'sandbox';
-    applyCloudLists(SETTINGS);
+    applyCloudExtra(SETTINGS);
+    renderPickers();
     watchHistory();
     await loadRules(SETTINGS, false);
     this.ready = true;
