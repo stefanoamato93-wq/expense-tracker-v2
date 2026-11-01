@@ -6,7 +6,7 @@
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js" crossorigin>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js" crossorigin>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js" crossorigin>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Expense Tracker v2</title>
@@ -15,7 +15,8 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0a4fa8">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tracker v2">
 <style>
@@ -30,8 +31,8 @@
                font-size: 16px; font-weight: 600; cursor: pointer; }
 #gate button.link { background: none; color: var(--primary); font-weight: 500; margin-top: 10px; }
 #gateErr { color: var(--danger); font-size: 13px; margin-top: 12px; min-height: 1em; }
-.mode-banner { background: #fff4d6; color: #6b4e00; font-size: 13px; padding: 8px 20px; text-align: center;
-               border-bottom: 0.5px solid #e6d3a0; }
+.mode-banner { background: #3a2f0b; color: #ffd60a; font-size: 13px; padding: 8px 20px; text-align: center;
+               border-bottom: 0.5px solid #5c4a10; }
 .mode-banner[hidden] { display: none; }
 .acct-line { font-size: 12px; color: var(--secondary); text-align: center; padding: 6px 0 2px; }
 .acct-line button { background: none; border: none; color: var(--primary); font-size: 12px; cursor: pointer; padding: 4px; }
@@ -40,9 +41,9 @@
 .rule-form input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 16px; }
 .rule-form .rule-note { font-size: 13px; color: var(--secondary); line-height: 1.4; }
 /* pickers: chips (accounts, details, asset) and tiles (labels), all tap, no scroll wheel */
-.pk-row { display: flex; flex-wrap: wrap; gap: 6px; }
-.pk-chip { background: var(--input-bg); border: 1.5px solid transparent; border-radius: 16px; padding: 7px 12px;
-           font: inherit; font-size: 14px; color: var(--text); cursor: pointer; }
+.pk-row { display: flex; flex-wrap: wrap; gap: 5px; }
+.pk-chip { background: var(--input-bg); border: 1.5px solid transparent; border-radius: 15px; padding: 6px 10px;
+           font: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
 .pk-chip.on { background: var(--primary); color: #fff; }
 .pk-chip.more, .pk-chip.add { background: none; border-color: var(--input-bg); color: var(--primary); }
 .pk-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
@@ -51,34 +52,37 @@
 .pk-tile .ic { display: block; font-size: 22px; line-height: 26px; height: 26px; }
 .pk-tile .ic.letter { font-size: 16px; font-weight: 700; color: var(--secondary); }
 .pk-tile .nm { display: block; font-size: 10px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pk-tile.on { border-color: var(--primary); background: rgba(0,122,255,0.1); }
+.pk-tile.on { border-color: var(--primary); background: rgba(10,132,255,0.22); }
 .pk-tile.add { background: none; border: 2px dashed var(--input-bg); color: var(--primary); }
 .pk-chip:active, .pk-tile:active { opacity: 0.7; }
 /* amount keypad */
 .amt-line { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 2px 0 8px; }
 .amt-sign { width: 40px; height: 40px; border-radius: 20px; border: none; font-size: 22px; font-weight: 700;
-            cursor: pointer; background: #e5f8ea; color: var(--success); }
-.amt-sign.neg { background: #ffe5e5; color: var(--danger); }
+            cursor: pointer; background: rgba(48,209,88,0.18); color: var(--success); }
+.amt-sign.neg { background: rgba(255,69,58,0.18); color: var(--danger); }
 .amt-num { font-size: 38px; font-weight: 700; min-width: 80px; text-align: center; }
-.amt-num.empty { color: #c7c7cc; }
+.amt-num.empty { color: #48484a; }
 .amt-eur { font-size: 24px; color: var(--secondary); }
 .amt-usual { margin-bottom: 8px; }
 .amt-chips { display: flex; gap: 6px; }
-.amt-chips button { flex: 1; background: var(--card); border: 1.5px solid var(--input-bg); border-radius: 14px; padding: 9px 0;
+.amt-chips button { flex: 1; background: var(--input-bg); border: 1.5px solid transparent; border-radius: 14px; padding: 9px 0;
                     font: inherit; font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; }
 .amt-chips button.on { border-color: var(--primary); color: var(--primary); }
 .amt-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .amt-pad button { background: var(--input-bg); border: none; border-radius: 10px; padding: 13px 0; font: inherit;
                   font-size: 22px; font-weight: 500; color: var(--text); cursor: pointer; user-select: none; -webkit-user-select: none; }
-.amt-pad button.g { background: #d1d1d6; font-size: 17px; }
+.amt-pad button.g { background: #3a3a3c; font-size: 17px; }
 .amt-pad button:active, .amt-chips button:active { opacity: 0.6; }
 </style>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body, button, input, .card { touch-action: manipulation; }   /* no zoom on a double tap */
 :root {
-  --bg: #f2f2f7; --card: #fff; --primary: #007aff; --danger: #ff3b30;
-  --success: #34c759; --text: #1c1c1e; --secondary: #8e8e93;
-  --border: #c6c6c8; --input-bg: #e5e5ea; --radius: 12px;
+  /* dark (iOS dark colours) */
+  --bg: #000; --card: #1c1c1e; --primary: #0a84ff; --danger: #ff453a;
+  --success: #30d158; --text: #f2f2f7; --secondary: #8e8e93;
+  --border: #38383a; --input-bg: #2c2c2e; --radius: 12px;
+  color-scheme: dark;
 }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', sans-serif;
@@ -96,10 +100,10 @@ body {
   background: none; border: none; color: var(--primary); font-size: 15px;
   font-weight: 500; cursor: pointer; padding: 8px;
 }
-.container { padding: 10px 24px; max-width: 500px; margin: 0 auto; }
+.container { padding: 8px 12px; max-width: 500px; margin: 0 auto; }
 .card {
   background: var(--card); border-radius: var(--radius); padding: 10px 12px;
-  margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  margin-bottom: 6px;
 }
 .field-label {
   font-size: 12px; font-weight: 500; color: var(--secondary);
@@ -181,7 +185,7 @@ body {
 /* Toast */
 .toast {
   position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
-  background: #333; color: #fff; padding: 12px 24px; border-radius: 20px;
+  background: #3a3a3c; color: #fff; padding: 12px 24px; border-radius: 20px;
   font-size: 14px; font-weight: 500; z-index: 1000; opacity: 0;
   transition: opacity 0.3s; pointer-events: none; max-width: 90%; text-align: center;
 }
@@ -412,8 +416,6 @@ body {
 
   <!-- Tools -->
   <div class="card">
-    <button class="btn btn-secondary" id="btnExportData" style="margin-top:0;">Export data (JSON backup)</button>
-    <button class="btn btn-secondary" id="btnRules">Refresh labels and rules from your data</button>
     <div class="acct-line"><span id="acctEmail"></span> · <button type="button" id="acctOut">Sign out</button></div>
   </div>
 
@@ -537,7 +539,7 @@ const ITEM_HEIGHT = 40;
 // ============================================================
 const PICK = { a: '', l: '', d: '', a2: '', x: '' };
 const OPEN = { a: false, a2: false, d: false };
-const TOP = { a: 6, a2: 6, d: 9, x: 0 };
+const TOP = { a: 8, a2: 8, d: 9, x: 0 };
 const ICONS = { GROCERIES: '\u{1F6D2}', RESTAURANTS: '\u{1F37D}\uFE0F', TRANSPORTATION: '\u{1F695}', AMUSEMENTS: '\u{1F389}',
   FOOD: '\u{1F950}', TRANSFER: '\u{1F501}', BILLS: '\u{1F4A1}', HOUSING: '\u{1F3E0}', WELLBEING: '\u{1F9D8}', CAR: '\u{1F697}',
   HEALTHCARE: '\u{1F48A}', WORK: '\u{1F4BC}', HOLIDAYS: '\u2708\uFE0F', CLOTHES: '\u{1F455}', PRESENTS: '\u{1F381}',
@@ -764,7 +766,7 @@ function toNum(v) {
 //                         acd varies in the data; the list is learned, not fixed)
 //   per LABEL          -> ty, c2 (and c1 when the detail is new)
 //   per LABEL + DETAIL -> c1
-// Stored in meta/settings.rulesj (rebuilt weekly or by the button). Values you
+// Stored in meta/settings.rulesj (rebuilt by itself every week). Values you
 // type for a new account/label go to meta/settings.ruleoverj and always win.
 // ============================================================
 const NORM = s => String(s == null ? '' : s).trim().toUpperCase();
@@ -1084,24 +1086,6 @@ function deleteEntry(row) {
 }
 
 // ============================================================
-// EXPORT DATA (JSON backup of every month in the current collection)
-// ============================================================
-async function exportData() {
-  if (!STORE) return;
-  showToast('Preparing backup…');
-  try {
-    const all = await STORE.loadAllMonths(COL);
-    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), collection: COL, months: all }, null, 1)],
-      { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `expense-tracker-v2-${COL}-${isoDate(new Date())}.json`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    showToast(`Backup: ${all.length} months`);
-  } catch (e) { showToast('Backup failed: ' + ((e && (e.code || e.message)) || e)); }
-}
-// ============================================================
 // FORM HELPERS
 // ============================================================
 function resetForm() {
@@ -1292,13 +1276,6 @@ const domReadyP = new Promise(r => { domReady = r; });
 document.addEventListener('DOMContentLoaded', () => {
   renderPickers();
   initAmountPad();
-  document.getElementById('btnExportData').addEventListener('click', exportData);
-  document.getElementById('btnRules').addEventListener('click', async () => {
-    if (!STORE) return;
-    showToast('Rebuilding rules…');
-    const b = await loadRules(SETTINGS, true);
-    showToast(b ? `Rules rebuilt from ${b.rows.toLocaleString()} rows` : 'Could not rebuild (no data or offline)');
-  });
   domReady();
   if (ET2.fake) ET2.start(window.ET2_FAKE);
 });
