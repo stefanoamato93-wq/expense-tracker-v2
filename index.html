@@ -54,6 +54,24 @@
 .pk-tile.on { border-color: var(--primary); background: rgba(0,122,255,0.1); }
 .pk-tile.add { background: none; border: 2px dashed var(--input-bg); color: var(--primary); }
 .pk-chip:active, .pk-tile:active { opacity: 0.7; }
+/* amount keypad */
+.amt-line { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 2px 0 8px; }
+.amt-sign { width: 40px; height: 40px; border-radius: 20px; border: none; font-size: 22px; font-weight: 700;
+            cursor: pointer; background: #e5f8ea; color: var(--success); }
+.amt-sign.neg { background: #ffe5e5; color: var(--danger); }
+.amt-num { font-size: 38px; font-weight: 700; min-width: 80px; text-align: center; }
+.amt-num.empty { color: #c7c7cc; }
+.amt-eur { font-size: 24px; color: var(--secondary); }
+.amt-usual { margin-bottom: 8px; }
+.amt-chips { display: flex; gap: 6px; }
+.amt-chips button { flex: 1; background: var(--card); border: 1.5px solid var(--input-bg); border-radius: 14px; padding: 9px 0;
+                    font: inherit; font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; }
+.amt-chips button.on { border-color: var(--primary); color: var(--primary); }
+.amt-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.amt-pad button { background: var(--input-bg); border: none; border-radius: 10px; padding: 13px 0; font: inherit;
+                  font-size: 22px; font-weight: 500; color: var(--text); cursor: pointer; user-select: none; -webkit-user-select: none; }
+.amt-pad button.g { background: #d1d1d6; font-size: 17px; }
+.amt-pad button:active, .amt-chips button:active { opacity: 0.6; }
 </style>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -344,19 +362,6 @@ body {
 <div id="viewForm" class="view active">
 <div class="container">
 
-  <!-- Value -->
-  <div class="card">
-    <div class="field-label">Value</div>
-    <div class="roll-container">
-      <button class="roll-sign-btn negative" id="rollSign">−</button>
-      <div class="num-roll-wrapper" id="rollValue">
-        <div class="num-roll-highlight"></div>
-        <div class="num-roll-track"></div>
-      </div>
-    </div>
-    <input type="number" class="free-text-input" id="manualValue" placeholder="Or type value manually...">
-  </div>
-
   <!-- Account (-) -->
   <div class="card">
     <div class="field-label">Account (−)</div>
@@ -383,6 +388,20 @@ body {
   <div class="card hidden" id="cardAssetclass">
     <div class="field-label">Asset Class Details</div>
     <div class="pk-row" id="pkX"></div>
+  </div>
+
+  <!-- Amount: keypad, whole euros; your usual amounts for the picked detail -->
+  <div class="card" id="cardAmount">
+    <div class="amt-line">
+      <button type="button" class="amt-sign neg" id="amtSign" aria-label="Expense or income">−</button>
+      <span class="amt-num empty" id="amtNum">0</span><span class="amt-eur">€</span>
+    </div>
+    <input type="hidden" id="manualValue" value="">
+    <div class="amt-usual hidden" id="amtUsualBox">
+      <div class="field-label" id="amtUsualTitle">Your usual</div>
+      <div class="amt-chips" id="amtUsual"></div>
+    </div>
+    <div class="amt-pad" id="amtPad"></div>
   </div>
 
   <!-- Submit -->
@@ -610,9 +629,11 @@ function pick(key, v) {
   } else PICK[key] = v;
   if (key === 'a' && NORM(PICK.a2) === NORM(v)) PICK.a2 = '';
   renderPickers();
-  if (key === 'l') {
-    const c = document.getElementById(isTransferPick() ? 'cardAccountPlus' : 'cardDetails');
-    if (c && c.scrollIntoView) c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (key === 'l' || key === 'd') amountForPick();
+  if (key === 'l' || key === 'd') {
+    // bring the next step on screen: the amount (or the second account for a transfer)
+    const c = document.getElementById(key === 'l' && isTransferPick() ? 'cardAccountPlus' : 'cardAmount');
+    if (c && c.scrollIntoView) c.scrollIntoView({ behavior: 'smooth', block: key === 'l' ? 'nearest' : 'end' });
   }
 }
 function addNew(key) {
@@ -638,151 +659,70 @@ document.getElementById('viewForm').addEventListener('click', e => {
 });
 
 // ============================================================
-// NUMBER ROLL (for Value field)
+// AMOUNT KEYPAD. Whole euros only (you round yourself). Expense (−) by default; when you
+// pick a detail and have not typed yet, the sign follows your data (e.g. Salary is +).
+// The hidden 'manualValue' holds the signed value; "Your usual" = the 4 amounts you use
+// most for that label + detail (last 12 months, from the rules' cats.amt).
 // ============================================================
-let numRollItems = [];
-let numCurrentIndex = 0;
-let numHoverIndex = 0;
-let numIsDragging = false;
-let numVelocity = 0;
-let numLastTouchY = 0;
-let numLastTouchTime = 0;
-let numTouchStartY = 0;
 let isNegative = true;
-
-function buildNumRoll() {
-  const track = document.querySelector('#rollValue .num-roll-track');
-  track.innerHTML = '';
-  numRollItems = [];
-  for (let i = 0; i <= 100; i++) numRollItems.push(i);
-  for (let i = 110; i <= 1000; i += 10) numRollItems.push(i);
-  for (let i = 1100; i <= 10000; i += 100) numRollItems.push(i);
-  numRollItems.forEach(val => {
-    const div = document.createElement('div');
-    div.className = 'num-roll-item';
-    div.textContent = val;
-    track.appendChild(div);
-  });
-  setNumIndex(0);
+const mvEl = () => document.getElementById('manualValue');
+function amountDigits() { return String(mvEl().value || '').replace(/\D/g, ''); }
+function setAmount(digits, neg) {
+  digits = String(digits || '').replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 6);
+  isNegative = !!neg;
+  mvEl().value = digits ? (isNegative ? '-' : '') + digits : '';
+  drawAmount();
 }
-
-function setNumIndex(idx) {
-  idx = Math.max(0, Math.min(numRollItems.length - 1, idx));
-  const changed = idx !== numCurrentIndex;
-  numCurrentIndex = idx;
-  numHoverIndex = idx;
-  const track = document.querySelector('#rollValue .num-roll-track');
-  track.style.transform = `translateY(${-idx * ITEM_HEIGHT + ITEM_HEIGHT}px)`;
-  const children = track.children;
-  for (let i = 0; i < children.length; i++) {
-    children[i].classList.toggle('selected', i === idx);
+function usualFor(label, detail) {
+  const A = BASE_RULES && BASE_RULES.cats && BASE_RULES.cats.amt;
+  return (A && A[NORM(label) + '|' + NORM(detail)]) || null;
+}
+function drawAmount() {
+  const d = amountDigits(), n = document.getElementById('amtNum'), sg = document.getElementById('amtSign');
+  if (!n) return;
+  n.textContent = d || '0';
+  n.classList.toggle('empty', !d);
+  sg.textContent = isNegative ? '\u2212' : '+';
+  sg.classList.toggle('neg', isNegative);
+  const u = PICK.l && PICK.d ? usualFor(PICK.l, PICK.d) : null;
+  document.getElementById('amtUsualBox').classList.toggle('hidden', !(u && u.u.length));
+  if (u && u.u.length) {
+    document.getElementById('amtUsualTitle').textContent = 'Your usual for ' + PICK.d;
+    document.getElementById('amtUsual').innerHTML = u.u.map(v =>
+      `<button type="button" data-amt="${v}" class="${String(v) === d ? 'on' : ''}">${v}</button>`).join('');
   }
-  if (changed) haptic(10);
-  document.getElementById('manualValue').value = getSignedValue();
 }
-
-function getSignedValue() {
-  const absVal = numRollItems[numCurrentIndex];
-  return isNegative ? -absVal : absVal;
+// The detail changed: show its usual amounts; take its sign if nothing is typed yet.
+function amountForPick() {
+  if (!amountDigits()) {
+    const u = PICK.l && PICK.d ? usualFor(PICK.l, PICK.d) : null;
+    isNegative = isTransferPick() || !(u && u.p);
+  }
+  drawAmount();
 }
-
 function getValueFromForm() {
-  const manual = document.getElementById('manualValue').value;
-  if (manual !== '') return parseInt(manual);
-  return getSignedValue();
+  const m = mvEl().value;
+  return m === '' ? 0 : parseInt(m, 10);
 }
-
-function initNumRollTouch() {
-  const wrapper = document.getElementById('rollValue');
-  wrapper.addEventListener('touchstart', (e) => {
-    numIsDragging = true;
-    numTouchStartY = e.touches[0].clientY;
-    numLastTouchY = numTouchStartY;
-    numLastTouchTime = Date.now();
-    numVelocity = 0;
-    wrapper.querySelector('.num-roll-track').style.transition = 'none';
-  }, { passive: false });
-
-  wrapper.addEventListener('touchmove', (e) => {
-    if (!numIsDragging) return;
-    e.preventDefault();
-    const y = e.touches[0].clientY;
-    const now = Date.now();
-    const dt = now - numLastTouchTime;
-    if (dt > 0) numVelocity = (y - numLastTouchY) / dt;
-    numLastTouchY = y;
-    numLastTouchTime = now;
-    const delta = y - numTouchStartY;
-    const track = wrapper.querySelector('.num-roll-track');
-    const baseOffset = -numCurrentIndex * ITEM_HEIGHT + ITEM_HEIGHT;
-    const offset = baseOffset + delta;
-    track.style.transform = `translateY(${offset}px)`;
-    const approx = Math.max(0, Math.min(numRollItems.length - 1, Math.round(1 - offset / ITEM_HEIGHT)));
-    if (approx !== numHoverIndex) { numHoverIndex = approx; haptic(6); }
-  }, { passive: false });
-
-  wrapper.addEventListener('touchend', () => {
-    numIsDragging = false;
-    const track = wrapper.querySelector('.num-roll-track');
-    track.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-    const delta = numLastTouchY - numTouchStartY;
-    const speed = Math.abs(numVelocity);
-    const momentumFactor = speed > 1.5 ? 400 : speed > 0.8 ? 250 : 150;
-    const momentum = numVelocity * momentumFactor;
-    const totalDelta = delta + momentum;
-    const indexDelta = Math.round(-totalDelta / ITEM_HEIGHT);
-    setNumIndex(numCurrentIndex + indexDelta);
+function initAmountPad() {
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '\u232B'];
+  const pad = document.getElementById('amtPad');
+  pad.innerHTML = keys.map(k => `<button type="button" data-key="${k}"${/\d/.test(k) ? '' : ' class="g"'}>${k}</button>`).join('');
+  pad.addEventListener('click', e => {
+    const b = e.target.closest('[data-key]'); if (!b) return;
+    const k = b.dataset.key, d = amountDigits();
+    haptic(8);
+    if (k === 'C') setAmount('', isNegative);
+    else if (k === '\u232B') setAmount(d.slice(0, -1), isNegative);
+    else setAmount(d + k, isNegative);
   });
-
-  wrapper.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    setNumIndex(numCurrentIndex + (e.deltaY > 0 ? 1 : -1));
-  }, { passive: false });
+  document.getElementById('amtUsual').addEventListener('click', e => {
+    const b = e.target.closest('[data-amt]'); if (!b) return;
+    haptic(10); setAmount(b.dataset.amt, isNegative);
+  });
+  document.getElementById('amtSign').addEventListener('click', () => { haptic(10); setAmount(amountDigits(), !isNegative); });
+  drawAmount();
 }
-
-// Sign toggle
-document.getElementById('rollSign').addEventListener('click', () => {
-  isNegative = !isNegative;
-  haptic(10);
-  const btn = document.getElementById('rollSign');
-  btn.textContent = isNegative ? '−' : '+';
-  btn.classList.toggle('negative', isNegative);
-  const mv = document.getElementById('manualValue');
-  if (mv.value !== '') {
-    const mag = Math.abs(parseInt(mv.value) || 0);
-    mv.value = isNegative ? -mag : mag;
-  } else {
-    mv.value = getSignedValue();
-  }
-});
-
-// Manual value: typing a bare number defaults to NEGATIVE (expense).
-document.getElementById('manualValue').addEventListener('input', (e) => {
-  let val = parseInt(e.target.value);
-  if (!isNaN(val)) {
-    if (val > 0) { isNegative = true; val = -val; e.target.value = val; }
-    else { isNegative = val < 0; }
-    const absVal = Math.abs(val);
-    const btn = document.getElementById('rollSign');
-    btn.textContent = isNegative ? '−' : '+';
-    btn.classList.toggle('negative', isNegative);
-    let closestIdx = 0;
-    let closestDiff = Math.abs(numRollItems[0] - absVal);
-    for (let i = 1; i < numRollItems.length; i++) {
-      const diff = Math.abs(numRollItems[i] - absVal);
-      if (diff < closestDiff) { closestDiff = diff; closestIdx = i; }
-      if (numRollItems[i] > absVal) break;
-    }
-    const track = document.querySelector('#rollValue .num-roll-track');
-    track.style.transition = 'transform 0.3s cubic-bezier(0.23, 1, 0.32, 1)';
-    numCurrentIndex = closestIdx;
-    track.style.transform = `translateY(${-closestIdx * ITEM_HEIGHT + ITEM_HEIGHT}px)`;
-    const items = track.children;
-    for (let i = 0; i < items.length; i++) {
-      items[i].classList.toggle('selected', i === closestIdx);
-    }
-  }
-});
 
 // ============================================================
 // TIMESTAMP + IDS
@@ -866,6 +806,27 @@ function buildRules(txList) {
   for (const k in AL) { const v = majority(AL[k].liq); if (v !== acct[k.split('|')[0]].liq) al[k] = v; }
   return { v: 1, at: Date.now(), rows: txList.length, acct, label, ld, al, multi, cats: buildCats(txList) };
 }
+/* pure: rows -> {LABEL|DETAIL: {u: [4 most used whole amounts], p: 1 if mostly income}}.
+   Last 12 months (all-time for a detail not used in that time). Transfers have no usual. */
+function buildUsual(txList, now) {
+  const from = new Date((now || Date.now()) - 365 * 864e5).toISOString().slice(0, 10);
+  const all = {}, recent = {};
+  for (const t of txList) {
+    const l = NORM(t.l), d = NORM(t.dt), v = Math.round(Math.abs(toNum(t.v)));
+    if (!l || !d || !v || l === 'TRANSFER') continue;
+    for (const o of String(t.d || '') >= from ? [all, recent] : [all]) {
+      const e = o[l + '|' + d] || (o[l + '|' + d] = { c: {}, pos: 0, n: 0 });
+      e.c[v] = (e.c[v] || 0) + 1; e.n++; if (toNum(t.v) > 0) e.pos++;
+    }
+  }
+  const res = {};
+  for (const k in all) {
+    const e = recent[k] || all[k];
+    const u = Object.keys(e.c).map(Number).sort((x, y) => (e.c[y] - e.c[x]) || (x - y)).slice(0, 4).sort((x, y) => x - y);
+    res[k] = { u, p: e.pos * 2 > e.n ? 1 : 0 };
+  }
+  return res;
+}
 /* pure: stored rows -> what the pickers offer, same rows the sankey shows.
    {acct: {KEY: [count, spelling]}, label: {KEY: [count, spelling, {DETAIL: [count, spelling]}]}, acdf: {...}}
    The spelling is the one used most (the sankey also groups details by upper case). */
@@ -881,7 +842,7 @@ function buildCats(txList) {
   const out = o => { const r = {}; for (const k in o) r[k] = [o[k].n, majority(o[k].sp)]; return r; };
   const label = {};
   for (const k in L) label[k] = [L[k].n, majority(L[k].sp), out(L[k].det)];
-  return { acct: out(A), label, acdf: out(X) };
+  return { acct: out(A), label, acdf: out(X), amt: buildUsual(txList) };
 }
 function setRules(base) {
   BASE_RULES = base || { acct: {}, label: {}, ld: {}, multi: [] };
@@ -891,6 +852,7 @@ function setRules(base) {
     ld: BASE_RULES.ld || {}, al: BASE_RULES.al || {}, multi: BASE_RULES.multi || [], rows: BASE_RULES.rows || 0, at: BASE_RULES.at || 0
   };
   renderPickers();
+  drawAmount();
 }
 /* pure: form row {a, v, l, dt, acdf, ...} -> {row with every column} or {missing:{acct, label}} */
 function deriveRow(t, R) {
@@ -912,7 +874,7 @@ async function loadRules(S, force) {
   try { base = JSON.parse(S.rulesj || 'null'); } catch (e) { base = null; }
   setRules(base);
   // Rebuilt weekly, or now when the saved rules predate the picker lists (no cats).
-  if (!force && base && base.cats && Date.now() - (base.at || 0) < RULES_EVERY) return base;
+  if (!force && base && base.cats && base.cats.amt && Date.now() - (base.at || 0) < RULES_EVERY) return base;
   try {
     const all = await STORE.loadAllMonths('months');
     const tx = [];
@@ -1145,16 +1107,12 @@ async function exportData() {
 function resetForm() {
   Object.keys(PICK).forEach(k => { PICK[k] = ''; });
   Object.keys(OPEN).forEach(k => { OPEN[k] = false; });
-  document.getElementById('manualValue').value = '';
-  setNumIndex(0);
-  isNegative = true;
-  document.getElementById('rollSign').textContent = '−';
-  document.getElementById('rollSign').classList.add('negative');
+  setAmount('', true);
   editingRow = null;
   document.getElementById('btnSubmit').textContent = 'Submit';
   document.getElementById('btnCancel').classList.add('hidden');
   renderPickers();
-  // Back to the top so the next entry starts with the value.
+  // Back to the top so the next entry starts with the account and label.
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1168,27 +1126,7 @@ function populateForm(row) {
   renderPickers();
 
   const val = parseInt(row.value) || 0;
-  isNegative = val < 0;
-  const absVal = Math.abs(val);
-  document.getElementById('rollSign').textContent = isNegative ? '−' : '+';
-  document.getElementById('rollSign').classList.toggle('negative', isNegative);
-  document.getElementById('manualValue').value = val;
-
-  let closestIdx = 0;
-  let closestDiff = Math.abs(numRollItems[0] - absVal);
-  for (let i = 1; i < numRollItems.length; i++) {
-    const diff = Math.abs(numRollItems[i] - absVal);
-    if (diff < closestDiff) { closestDiff = diff; closestIdx = i; }
-    if (numRollItems[i] > absVal) break;
-  }
-  const track = document.querySelector('#rollValue .num-roll-track');
-  track.style.transition = 'transform 0.3s cubic-bezier(0.23, 1, 0.32, 1)';
-  numCurrentIndex = closestIdx;
-  track.style.transform = `translateY(${-closestIdx * ITEM_HEIGHT + ITEM_HEIGHT}px)`;
-  const items = track.children;
-  for (let i = 0; i < items.length; i++) {
-    items[i].classList.toggle('selected', i === closestIdx);
-  }
+  setAmount(String(Math.abs(val)), val < 0);
 
   document.getElementById('btnSubmit').textContent = 'Update';
   document.getElementById('btnCancel').classList.remove('hidden');
@@ -1353,8 +1291,7 @@ const domReadyP = new Promise(r => { domReady = r; });
 
 document.addEventListener('DOMContentLoaded', () => {
   renderPickers();
-  buildNumRoll();
-  initNumRollTouch();
+  initAmountPad();
   document.getElementById('btnExportData').addEventListener('click', exportData);
   document.getElementById('btnRules').addEventListener('click', async () => {
     if (!STORE) return;
