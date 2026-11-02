@@ -96,9 +96,16 @@ export function watchMonths(col, fromYm, cb) {
     cb(list, { fromCache: snap.metadata.fromCache, pending: snap.metadata.hasPendingWrites });
   }, err => cb(null, { error: err && (err.code || err.message) || String(err) }));
 }
+// Read one year at a time and pause between years, so taps still work while it reads.
 export async function loadAllMonths(col) {
-  const snap = await getDocs(colRef(col));
-  return snap.docs.map(d => ({ month: d.id, rows: rowsOf(d.data()) }));
+  const out = [], stop = new Date().getFullYear() + 1;
+  for (let y = 2010; y <= stop; y++) {
+    const q = query(colRef(col), where(documentId(), ">=", String(y)), where(documentId(), "<", String(y + 1)));
+    const snap = await getDocs(q);
+    snap.docs.forEach(d => out.push({ month: d.id, rows: rowsOf(d.data()) }));
+    if (snap.size) await new Promise(r => setTimeout(r, 50));
+  }
+  return out;
 }
 
 // One field per row: FieldPath("tx", id). mergeFields REPLACES that row as a whole (a plain
