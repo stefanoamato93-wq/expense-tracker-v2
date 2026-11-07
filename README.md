@@ -10,7 +10,7 @@ Live: https://stefanoamato93-wq.github.io/expense-tracker-v2/ (sign in with Goog
 
 | | v1 (lean, v5) | v2 |
 |---|---|---|
-| Saves to | Apps Script → `Sheet1` | Firestore `users/{uid}/sandbox` (test mode) or `months` (after cutover) |
+| Saves to | Apps Script → `Sheet1` | Firestore `users/{uid}/months` (cutover done; `sandbox` only in test mode) |
 | Save time | 1–30 s (cold Apps Script) | instant; Firestore's offline cache sends it |
 | Offline | hand-made outbox + backoff retries | built into Firestore (queued on the phone) |
 | Edit / delete | row numbers, content matching, tombstones | by row id, instant, also offline |
@@ -23,12 +23,11 @@ Same as v1: roll pickers, category editor, Export categories, transfers write tw
 (mirror: other account, opposite value), and `resetForm()` scrolls back to the first roll
 (`#rollAccountMinus`) after every save.
 
-## Test mode (until cutover)
+## Test mode (done: cutover is live)
 
-While `meta/settings.cutover` is not `true`, every save goes to `users/{uid}/sandbox/…`,
-never to your real data (`months`, which sankey-v2 still re-imports from the sheet).
-A yellow banner says so. On cutover day (phase 5) set `cutover: true`: the banner goes,
-saves go to `months`, and sankey-v2 stops importing the sheet.
+Cutover is done: `meta/settings.cutover` is `true`, so every save goes to your real data
+(`months`) and no banner shows. The code still supports test mode: if `cutover` were not
+`true`, saves would go to `users/{uid}/sandbox/…` behind a yellow banner.
 
 ## Data model
 
