@@ -146,8 +146,30 @@ export function moveRows(col, fromYm, toYm, ids, rows) {
   return b.commit();
 }
 
+// ---- AMEX Platinum benefits ------------------------------------------------------------
+// One doc users/{uid}/amex/benefits, same tx/del map as a month (one field per row).
+// A row: d 'YYYY-MM-DD', v value €, ds description, c category, k Baseline|Lifestyle, o order.
+const amexRef = () => doc(db, "users", uidOrThrow(), "amex", "benefits");
+export function watchAmex(cb) {
+  return onSnapshot(amexRef(), { includeMetadataChanges: true }, snap => {
+    cb({ exists: snap.exists(), fromCache: snap.metadata.fromCache,
+         seeded: snap.exists() && snap.data().seeded === true,
+         rows: snap.exists() ? rowsOf(snap.data()) : {} });
+  }, err => cb(null, { error: err && (err.code || err.message) || String(err) }));
+}
+export function putAmex(rows, extra) {
+  const p = putPart(rows);
+  for (const k in (extra || {})) { p.data[k] = extra[k]; p.fields.push(k); }
+  return setDoc(amexRef(), p.data, { mergeFields: p.fields });
+}
+export function delAmex(ids) {
+  const p = delPart(ids);
+  return setDoc(amexRef(), p.data, { mergeFields: p.fields });
+}
+
 const api = { signIn, signOut, onUser, checkAccess, getSettings, setSettings,
-              watchMonths, loadAllMonths, putRows, delRows, moveRows, rowsOf };
+              watchMonths, loadAllMonths, putRows, delRows, moveRows, rowsOf,
+              watchAmex, putAmex, delAmex };
 window.ET2Store = api;
 
 // ---- sign-in gate (UI) ----------------------------------------------------------------

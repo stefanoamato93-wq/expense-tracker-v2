@@ -341,6 +341,24 @@ body {
   background: var(--primary); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
 }
 .export-copy:active { opacity: 0.7; }
+/* AMEX page */
+.ax-recap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; }
+.ax-big { font-size: 20px; font-weight: 700; }
+.ax-big.pos, .ax-tbl .pos { color: var(--success); }
+.ax-big.neg, .ax-tbl .neg { color: var(--danger); }
+.ax-sub { font-size: 12px; color: var(--secondary); margin-top: 4px; }
+.ax-form { display: grid; grid-template-columns: 1fr 70px 132px; gap: 6px; margin-top: 8px; }
+.ax-form input { min-width: 0; padding: 8px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--input-bg); color: var(--text); font: inherit; font-size: 16px; color-scheme: dark; }
+.ax-row { display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 7px 0; border-bottom: 0.5px solid var(--border); font-size: 14px; }
+.ax-v { font-weight: 600; white-space: nowrap; }
+.ax-tag { font-size: 10px; color: var(--secondary); border: 1px solid var(--border); border-radius: 6px; padding: 0 4px; font-weight: 400; }
+.ax-del { background: none; border: none; color: var(--danger); font-size: 14px; cursor: pointer; padding: 4px; }
+.ax-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ax-tbl th { color: var(--secondary); font-weight: 500; font-size: 11px; text-align: right; padding: 4px 2px; }
+.ax-tbl td { text-align: right; padding: 5px 2px; border-top: 0.5px solid var(--border); }
+.ax-tbl th:first-child, .ax-tbl td:first-child { text-align: left; }
 </style>
 </head>
 <body>
@@ -357,8 +375,9 @@ body {
 <div class="header">
   <div class="header-left">
     <button id="btnRecent">History</button>
+    <button id="btnAmex">AMEX</button>
   </div>
-  <h1>Expense Tracker <small class="ver">v2.1</small></h1>
+  <h1>Expense Tracker <small class="ver">v2.2</small></h1>
   <button id="btnNew">+ New</button>
 </div>
 <div class="mode-banner" id="modeBanner" hidden>Test mode: entries go to a sandbox, not your real data.</div>
@@ -435,6 +454,41 @@ body {
            aria-label="Search entries" autocapitalize="none" autocomplete="off">
     <div id="recentList"><div class="spinner"></div></div>
   </div>
+</div>
+</div>
+
+<!-- AMEX VIEW: Platinum benefits vs card costs (amex.js) -->
+<div id="viewAmex" class="view">
+<div class="container">
+  <div class="card">
+    <div class="ax-recap">
+      <div><div class="field-label">Benefits</div><div class="ax-big" id="amexB">–</div></div>
+      <div><div class="field-label">Costs</div><div class="ax-big" id="amexC">–</div></div>
+      <div><div class="field-label">Net</div><div class="ax-big" id="amexN">–</div></div>
+    </div>
+    <div class="ax-sub" id="amexStatus">Loading…</div>
+  </div>
+  <div class="card">
+    <div class="field-label">Category</div>
+    <div class="pk-row" id="amexFc"></div>
+    <div class="field-label" style="margin-top:8px">Kind</div>
+    <div class="pk-row" id="amexFk"></div>
+  </div>
+  <div class="card">
+    <div class="field-label">Add benefit</div>
+    <div class="pk-row" id="amexUsual"></div>
+    <div class="ax-form">
+      <input id="amexDs" placeholder="Description" autocomplete="off">
+      <input id="amexV" inputmode="decimal" placeholder="€">
+      <input id="amexD" type="date">
+    </div>
+    <div class="pk-row" id="amexAc" style="margin-top:6px"></div>
+    <div class="pk-row" id="amexAk" style="margin-top:6px"></div>
+    <button class="btn btn-primary" id="amexAdd" style="margin-top:8px">Add</button>
+  </div>
+  <div class="card"><div class="field-label">By benefit</div><div id="amexBy"></div></div>
+  <div class="card"><div class="field-label">By month</div><div id="amexMonths"></div></div>
+  <div class="card"><div class="field-label">Entries</div><div id="amexList"></div></div>
 </div>
 </div>
 
@@ -1343,6 +1397,7 @@ window.ET2 = ET2;
 window.addEventListener('online', () => { updateSyncStatus(); refreshHistoryView(); });
 window.addEventListener('offline', () => { updateSyncStatus(); refreshHistoryView(); });
 </script>
+<script src="amex.js"></script>
 <!-- v2 data layer: every Firebase call lives in store.js (skipped in fake/test mode) -->
 <script type="module">
 if (!window.ET2_FAKE) {

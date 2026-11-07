@@ -76,6 +76,18 @@ grouped"); the answer is saved in `meta/settings.ruleoverj` and always wins.
 - `_verify_tracker.py` (not committed) — headless Edge check with a fake store seeded from
   the real sheet: rules parity, expense, transfer, edit, month move, delete, new-label dialog.
 
+## AMEX page (v2.2, 7 Nov 2026)
+
+Header button **AMEX**: is the AMEX Platinum worth its cost? Code in `amex.js`, data calls in `store.js`.
+- **Benefits** = rows in `users/{uid}/amex/benefits` (`tx.<id>` / `del.<id>` like a month; row: `d` date,
+  `v` €, `ds` description, `c` category, `k` Baseline|Lifestyle) + **membership points**, read live from
+  `months`: INCOME rows on the `MEMBERSHIP` account (shown as "auto", Cash discount / Baseline).
+- **Costs** = `CreditCardCosts` rows on the `AMEXPLATINUM` account in `months`, from Mar 2026.
+- **Net** = benefits − costs, plus a by-month table with a running total.
+- Filters: category (Cash discount, Value Equivalent, any new one) and kind (Baseline, Lifestyle). Costs ignore filters.
+- Add: description, €, date, category, kind; usual descriptions as chips fill the form. ✕ deletes (with confirm).
+- First open seeds Stefano's 84-row starting list (ids `seed001…`, €1,805) and sets `seeded: true`.
+
 ## Buttons
 
 - **Export data (JSON backup)** downloads every month of the current collection.
