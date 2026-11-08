@@ -108,7 +108,7 @@
   }
 
   let BEN = {}, MON = [], started = false, seeding = false;
-  const F = { c: '', k: '' };                 // '' = all
+  const F = { c: '', k: '', m: '' };          // '' = all; m = 'YYYY-MM'
   const FORM = { c: 'Value Equivalent', k: 'Baseline' };
   const $ = id => document.getElementById(id);
   const eur = n => (n < 0 ? '−' : '') + '€' + Math.abs(Math.round(n)).toLocaleString('it-IT');
@@ -152,7 +152,8 @@
     });
     return out;
   }
-  const pass = r => (!F.c || r.c === F.c) && (!F.k || r.k === F.k);
+  const passM = r => !F.m || r.ym === F.m;    // month filter: benefits AND costs
+  const pass = r => (!F.c || r.c === F.c) && (!F.k || r.k === F.k) && passM(r);
   function catList() {
     const s = new Set(CATS0.concat(FORM.c));
     Object.values(BEN).forEach(r => r.c && s.add(r.c));
@@ -166,7 +167,10 @@
 
   function render() {
     if (!$('viewAmex')) return;
-    const ben = allBenefits(), costs = allCosts();
+    const ben = allBenefits(), allC = allCosts();
+    const monthList = [...new Set([...ben.map(r => r.ym), ...allC.map(r => r.ym)])].sort().reverse();
+    if (F.m && !monthList.includes(F.m)) F.m = '';
+    const costs = allC.filter(passM);
     const shown = ben.filter(pass);
     const B = shown.reduce((s, r) => s + r.v, 0), C = costs.reduce((s, r) => s + r.v, 0), N = B - C;
     $('amexB').textContent = eur(B);
@@ -174,9 +178,12 @@
     $('amexN').textContent = (N > 0 ? '+' : '') + eur(N);
     $('amexN').className = 'ax-big ' + (N >= 0 ? 'pos' : 'neg');
     $('amexStatus').textContent = (N >= 0 ? 'The card pays for itself' : 'The card costs more than it gives') +
-      ` · since ${ymName(START)}` + (F.c || F.k ? ' · filtered: ' + [F.c, F.k].filter(Boolean).join(', ') : '');
+      (F.m ? ` · ${ymName(F.m)}` : ` · since ${ymName(START)}`) +
+      (F.c || F.k ? ' · filtered: ' + [F.c, F.k].filter(Boolean).join(', ') : '');
     $('amexFc').innerHTML = chips('fc', catList(), F.c, true);
     $('amexFk').innerHTML = chips('fk', KINDS, F.k, true);
+    $('amexFm').innerHTML = [['', 'All']].concat(monthList.map(ym => [ym, ymName(ym)])).map(([v, t]) =>
+      `<button type="button" class="pk-chip${v === F.m ? ' on' : ''}" data-g="fm" data-v="${esc(v)}">${esc(t)}</button>`).join('');
     $('amexAc').innerHTML = chips('ac', catList(), FORM.c, false) + '<button type="button" class="pk-chip add" data-g="acnew">+ New</button>';
     $('amexAk').innerHTML = chips('ak', KINDS, FORM.k, false);
 
@@ -241,7 +248,7 @@
         if (r && confirm(`Delete ${r.ds} ${eur(r.v)}?`)) STORE.delAmex([b.dataset.id]).catch(err => showToast('Delete failed: ' + (err.code || err.message)));
         return;
       }
-      if (g === 'fc') F.c = v; else if (g === 'fk') F.k = v;
+      if (g === 'fc') F.c = v; else if (g === 'fk') F.k = v; else if (g === 'fm') F.m = v;
       else if (g === 'ac') FORM.c = v; else if (g === 'ak') FORM.k = v;
       else if (g === 'acnew') { const n = (prompt('New category') || '').trim(); if (n) FORM.c = n; else return; }
       else if (g === 'use') {

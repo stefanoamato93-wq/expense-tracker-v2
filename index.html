@@ -377,7 +377,7 @@ body {
     <button id="btnRecent">History</button>
     <button id="btnAmex">AMEX</button>
   </div>
-  <h1>Expense Tracker <small class="ver">v2.2</small></h1>
+  <h1>Expense Tracker <small class="ver">v2.3</small></h1>
   <button id="btnNew">+ New</button>
 </div>
 <div class="mode-banner" id="modeBanner" hidden>Test mode: entries go to a sandbox, not your real data.</div>
@@ -473,6 +473,8 @@ body {
     <div class="pk-row" id="amexFc"></div>
     <div class="field-label" style="margin-top:8px">Kind</div>
     <div class="pk-row" id="amexFk"></div>
+    <div class="field-label" style="margin-top:8px">Month</div>
+    <div class="pk-row" id="amexFm"></div>
   </div>
   <div class="card">
     <div class="field-label">Add benefit</div>
@@ -1397,7 +1399,7 @@ window.ET2 = ET2;
 window.addEventListener('online', () => { updateSyncStatus(); refreshHistoryView(); });
 window.addEventListener('offline', () => { updateSyncStatus(); refreshHistoryView(); });
 </script>
-<script src="amex.js"></script>
+<script src="amex.js?v=2.3"></script>
 <!-- v2 data layer: every Firebase call lives in store.js (skipped in fake/test mode) -->
 <script type="module">
 if (!window.ET2_FAKE) {

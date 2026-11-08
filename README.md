@@ -83,7 +83,8 @@ Header button **AMEX**: is the AMEX Platinum worth its cost? Code in `amex.js`, 
   `months`: INCOME rows on the `MEMBERSHIP` account (shown as "auto", Cash discount / Baseline).
 - **Costs** = `CreditCardCosts` rows on the `AMEXPLATINUM` account in `months`, from Mar 2026.
 - **Net** = benefits − costs, plus a by-month table with a running total.
-- Filters: category (Cash discount, Value Equivalent, any new one) and kind (Baseline, Lifestyle). Costs ignore filters.
+- Filters: category (Cash discount, Value Equivalent, any new one) and kind (Baseline, Lifestyle); costs ignore these two.
+  **Month** filter (v2.3): All or one month, newest first; it filters benefits AND costs, so Net is that month's net.
 - Add: description, €, date, category, kind; usual descriptions as chips fill the form. ✕ deletes (with confirm).
 - First open seeds Stefano's 84-row starting list (ids `seed001…`, €1,805) and sets `seeded: true`.
 
