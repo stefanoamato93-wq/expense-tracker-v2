@@ -219,6 +219,23 @@
        <div class="ax-sub">${esc(x.c)} · ${esc(x.k)} · ${x.n}×</div></div><div class="ax-v">${eur(x.v)}</div></div>`).join('')
       || '<p class="ax-sub">Nothing with this filter.</p>';
 
+    // chart: every month (category filter applies; Baseline and Lifestyle always both shown)
+    const benC = ben.filter(r => !F.c || r.c === F.c);
+    const cm = [...new Set([...benC.map(r => r.ym), ...allC.map(r => r.ym)])].sort();
+    const sum = (a, f) => a.filter(f).reduce((s, r) => s + r.v, 0);
+    const data = cm.map(ym => ({ ym, bl: sum(benC, r => r.ym === ym && r.k !== 'Lifestyle'),
+      lf: sum(benC, r => r.ym === ym && r.k === 'Lifestyle'), co: sum(allC, r => r.ym === ym) }));
+    const top = Math.max(1, ...data.map(x => Math.max(x.bl + x.lf, x.co)));
+    const h = n => (n / top * 100).toFixed(1) + '%';
+    const totLf = data.reduce((s, x) => s + x.lf, 0), totB = data.reduce((s, x) => s + x.bl + x.lf, 0);
+    $('amexChart').innerHTML = `<div class="axc">${data.map(x =>
+      `<div class="axc-m${x.ym === F.m ? ' on' : ''}"><div class="axc-bars">` +
+      `<div class="axc-col" style="height:${h(x.bl + x.lf)}">${x.lf ? `<b>${Math.round(x.lf)}</b>` : ''}<i class="bl" style="flex:${x.bl}"></i><i class="lf" style="flex:${x.lf}"></i></div>` +
+      `<div class="axc-col" style="height:${h(x.co)}"><i class="co" style="flex:1"></i></div>` +
+      `</div><div class="axc-n">${ymName(x.ym).split(' ')[0]}</div></div>`).join('')}</div>` +
+      `<div class="axc-key"><span style="--c:var(--success)">Baseline</span><span style="--c:#ff9f0a">Lifestyle</span><span style="--c:var(--danger)">Cost</span>` +
+      `<span style="--c:transparent">Lifestyle ${eur(totLf)} = ${totB ? Math.round(totLf / totB * 100) : 0}% of benefits</span></div>`;
+
     // by month
     const months = new Set([...shown.map(r => r.ym), ...costs.map(r => r.ym)]);
     let run = 0;

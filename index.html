@@ -362,6 +362,18 @@ body {
 .ax-tbl th { color: var(--secondary); font-weight: 500; font-size: 11px; text-align: right; padding: 4px 2px; }
 .ax-tbl td { text-align: right; padding: 5px 2px; border-top: 0.5px solid var(--border); }
 .ax-tbl th:first-child, .ax-tbl td:first-child { text-align: left; }
+/* AMEX chart: per month, benefit bar (Baseline + Lifestyle stacked) beside the cost bar */
+.axc { display: flex; align-items: flex-end; gap: 4px; height: 150px; padding-top: 14px; }
+.axc-m { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; height: 100%; }
+.axc-m.on .axc-n { color: var(--primary); font-weight: 700; }
+.axc-bars { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 2px; }
+.axc-col { width: 42%; max-width: 16px; display: flex; flex-direction: column-reverse; position: relative; }
+.axc-col i { display: block; width: 100%; }
+.axc-col .bl { background: var(--success); } .axc-col .lf { background: #ff9f0a; } .axc-col .co { background: var(--danger); }
+.axc-col b { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 600; color: #ff9f0a; white-space: nowrap; }
+.axc-n { font-size: 10px; color: var(--secondary); margin-top: 3px; white-space: nowrap; }
+.axc-key { display: flex; gap: 12px; font-size: 11px; color: var(--secondary); margin-top: 8px; flex-wrap: wrap; }
+.axc-key span::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; background: var(--c); }
 </style>
 </head>
 <body>
@@ -380,7 +392,7 @@ body {
     <button id="btnRecent">History</button>
     <button id="btnAmex">AMEX</button>
   </div>
-  <h1>Expense Tracker <small class="ver">v2.5</small></h1>
+  <h1>Expense Tracker <small class="ver">v2.6</small></h1>
   <button id="btnNew">+ New</button>
 </div>
 <div class="mode-banner" id="modeBanner" hidden>Test mode: entries go to a sandbox, not your real data.</div>
@@ -494,6 +506,7 @@ body {
     <button class="btn btn-primary" id="amexAdd" style="margin-top:8px">Add</button>
   </div>
   <div class="card"><div class="field-label">By benefit</div><div id="amexBy"></div></div>
+  <div class="card"><div class="field-label">Costs vs benefits by month</div><div id="amexChart"></div></div>
   <div class="card"><div class="field-label">By month</div><div id="amexMonths"></div></div>
   <div class="card"><div class="field-label">Entries</div><div id="amexList"></div></div>
 </div>
@@ -1427,7 +1440,7 @@ window.ET2 = ET2;
 window.addEventListener('online', () => { updateSyncStatus(); refreshHistoryView(); });
 window.addEventListener('offline', () => { updateSyncStatus(); refreshHistoryView(); });
 </script>
-<script src="amex.js?v=2.5"></script>
+<script src="amex.js?v=2.6"></script>
 <!-- v2 data layer: every Firebase call lives in store.js (skipped in fake/test mode) -->
 <script type="module">
 if (!window.ET2_FAKE) {
