@@ -98,16 +98,25 @@
 2026	10	1	20	Biglietto Italo	Value Equivalent	Baseline
 2026	11	1	20	Biglietto Italo	Value Equivalent	Baseline`;
   const p2 = n => String(n).padStart(2, '0');
+  // Fixed values (9 Nov 2026): Lounge Baseline 10, Lounge Lifestyle 25, Fast Track 10.
+  // Used for every past row (one-time fix in Firebase, FIX_VER) and every new one.
+  const FIX_VER = 1;
+  function price(ds, k) {
+    const n = String(ds || '').trim().toLowerCase();
+    if (n === 'lounge') return k === 'Lifestyle' ? 25 : 10;
+    if (n === 'fast track') return 10;
+    return null;
+  }
   function seedRows() {
     const out = {};
     SEED.split('\n').forEach((line, i) => {
-      const [y, m, d, v, ds, c, k] = line.split('\t');
-      out['seed' + p2(i + 1).padStart(3, '0')] = { d: `${y}-${p2(m)}-${p2(d)}`, v: Number(v), ds, c, k, o: i + 1 };
+      const [y, m, d, v0, ds, c, k] = line.split('\t'), v = price(ds, k) ?? Number(v0);
+      out['seed' + p2(i + 1).padStart(3, '0')] = { d: `${y}-${p2(m)}-${p2(d)}`, v, ds, c, k, o: i + 1 };
     });
     return out;
   }
 
-  let BEN = {}, MON = [], started = false, seeding = false;
+  let BEN = {}, MON = [], started = false, seeding = false, fixing = false;
   const F = { c: '', k: '', m: '' };          // '' = all; m = 'YYYY-MM'
   const FORM = { c: 'Value Equivalent', k: 'Baseline' };
   const $ = id => document.getElementById(id);
@@ -123,7 +132,14 @@
       BEN = s.rows;
       if (!s.seeded && !s.fromCache && !seeding) {     // first time ever: load the starting list
         seeding = true;
-        STORE.putAmex(seedRows(), { seeded: true }).catch(e => showToast('Seed failed: ' + (e.code || e.message)));
+        STORE.putAmex(seedRows(), { seeded: true, fix: FIX_VER }).catch(e => showToast('Seed failed: ' + (e.code || e.message)));
+      } else if (s.seeded && !s.fromCache && (s.fix || 0) < FIX_VER && !fixing) {   // one-time: set the fixed values on past rows
+        fixing = true;
+        const ch = {};
+        for (const id in BEN) { const r = BEN[id], p = price(r.ds, r.k); if (p != null && r.v !== p) ch[id] = { ...r, v: p }; }
+        STORE.putAmex(ch, { fix: FIX_VER })
+          .then(() => { if (Object.keys(ch).length) showToast(`Updated ${Object.keys(ch).length} Lounge/Fast Track rows`); })
+          .catch(e => { fixing = false; showToast('Update failed: ' + (e.code || e.message)); });
       }
       render();
     });
@@ -223,7 +239,7 @@
 
   function add() {
     const ds = $('amexDs').value.trim();
-    const v = Number(String($('amexV').value).replace(',', '.'));
+    const v = price(ds, FORM.k) ?? Number(String($('amexV').value).replace(',', '.'));
     const d = $('amexD').value;
     if (!ds) { showToast('Add a description'); return; }
     if (!(v > 0)) { showToast('Add a value'); return; }

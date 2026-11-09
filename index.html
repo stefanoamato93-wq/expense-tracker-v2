@@ -380,7 +380,7 @@ body {
     <button id="btnRecent">History</button>
     <button id="btnAmex">AMEX</button>
   </div>
-  <h1>Expense Tracker <small class="ver">v2.4</small></h1>
+  <h1>Expense Tracker <small class="ver">v2.5</small></h1>
   <button id="btnNew">+ New</button>
 </div>
 <div class="mode-banner" id="modeBanner" hidden>Test mode: entries go to a sandbox, not your real data.</div>
@@ -1427,13 +1427,13 @@ window.ET2 = ET2;
 window.addEventListener('online', () => { updateSyncStatus(); refreshHistoryView(); });
 window.addEventListener('offline', () => { updateSyncStatus(); refreshHistoryView(); });
 </script>
-<script src="amex.js?v=2.3"></script>
+<script src="amex.js?v=2.5"></script>
 <!-- v2 data layer: every Firebase call lives in store.js (skipped in fake/test mode) -->
 <script type="module">
 if (!window.ET2_FAKE) {
   // Gate only on a device that never signed in; a remembered user goes straight in.
   if (!localStorage.getItem('et2.user')) document.getElementById('gate').hidden = false;
-  import('./store.js').then(m => m.initGate()).catch(err => {
+  import('./store.js?v=2.5').then(m => m.initGate()).catch(err => {
     const g = document.getElementById('gate');
     g.hidden = false;
     document.getElementById('gateMsg').textContent = 'Could not load Firebase. Check the connection and reload.';

@@ -154,6 +154,7 @@ export function watchAmex(cb) {
   return onSnapshot(amexRef(), { includeMetadataChanges: true }, snap => {
     cb({ exists: snap.exists(), fromCache: snap.metadata.fromCache,
          seeded: snap.exists() && snap.data().seeded === true,
+         fix: snap.exists() ? Number(snap.data().fix) || 0 : 0,
          rows: snap.exists() ? rowsOf(snap.data()) : {} });
   }, err => cb(null, { error: err && (err.code || err.message) || String(err) }));
 }
