@@ -55,6 +55,9 @@
 .pk-tile.on { border-color: var(--primary); background: rgba(10,132,255,0.22); }
 .pk-tile.add { background: none; border: 2px dashed var(--input-bg); color: var(--primary); }
 .pk-chip:active, .pk-tile:active { opacity: 0.7; }
+.pk-find { width: 100%; box-sizing: border-box; margin: 0 0 7px; padding: 7px 10px; border-radius: 10px;
+           border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font: inherit; font-size: 16px; }
+.pk-none { font-size: 13px; color: var(--secondary); padding: 6px 2px; }
 /* amount keypad */
 .amt-line { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 2px 0 8px; }
 .amt-sign { width: 40px; height: 40px; border-radius: 20px; border: none; font-size: 22px; font-weight: 700;
@@ -407,6 +410,7 @@ body {
   <!-- Account (+) and asset: only for Transfer -->
   <div class="card hidden" id="cardAccountPlus">
     <div class="field-label">Account (+)</div>
+    <input type="search" class="pk-find" data-find="a2" placeholder="&#x1F50D; Type to find an account" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
     <div class="pk-row" id="pkA2"></div>
   </div>
   <div class="card hidden" id="cardAssetclass">
@@ -660,8 +664,16 @@ function buildCatalog() {
 }
 function isTransferPick() { return NORM(PICK.l) === 'TRANSFER'; }
 function niceName(s) { return /[a-z]/.test(s) ? s : s.charAt(0) + s.slice(1).toLowerCase(); }
+// typed text in the account search boxes: filters ALL accounts (most used still first)
+const FIND = { a: '', a2: '' };
 function chipsHtml(key, list, cur) {
-  const ck = NORM(cur), top = TOP[key];
+  const ck = NORM(cur), top = TOP[key], q = NORM(FIND[key] || '');
+  if (q) {
+    const hit = list.filter(i => i.k.includes(q));
+    if (!hit.length) return `<span class="pk-none">No account with "${esc(FIND[key])}"</span>` +
+      `<button type="button" class="pk-chip add" data-add="${key}">\uFF0B New</button>`;
+    return hit.map(i => `<button type="button" class="pk-chip${i.k === ck ? ' on' : ''}" data-k="${key}" data-v="${esc(i.s)}">${esc(i.s || 'None')}</button>`).join('');
+  }
   let shown = list, more = false;
   if (top && !OPEN[key] && list.length > top) { shown = list.slice(0, top); more = true; }
   if (!shown.some(i => i.k === ck) && (ck || key === 'x')) {
@@ -709,6 +721,11 @@ function pick(key, v) {
       PICK.d = ds.length ? ds[0].s : '';
     }
   } else PICK[key] = v;
+  if (key === 'a' || key === 'a2') {             // picked: clear the search box, back to the usual chips
+    FIND[key] = '';
+    const f = document.querySelector(`.pk-find[data-find="${key}"]`);
+    if (f) { f.value = ''; f.blur(); }
+  }
   if (key === 'a' && NORM(PICK.a2) === NORM(v)) PICK.a2 = '';
   renderPickers();
   if (key === 'l' || key === 'd') amountForPick();
@@ -738,6 +755,16 @@ document.getElementById('viewForm').addEventListener('click', e => {
   if (b.dataset.more) { OPEN[b.dataset.more] = true; renderPickers(); return; }
   if (b.dataset.add) { addNew(b.dataset.add); return; }
   pick(b.dataset.k, b.dataset.v);
+});
+document.getElementById('viewForm').addEventListener('input', e => {
+  const f = e.target.closest('.pk-find'); if (!f) return;
+  FIND[f.dataset.find] = f.value; renderPickers();
+});
+document.getElementById('viewForm').addEventListener('keydown', e => {
+  const f = e.target.closest('.pk-find'); if (!f || e.key !== 'Enter') return;
+  e.preventDefault();                            // Enter picks the first match
+  const first = document.querySelector(`#${f.dataset.find === 'a' ? 'pkA' : 'pkA2'} [data-k]`);
+  if (first) pick(first.dataset.k, first.dataset.v);
 });
 
 // ============================================================
